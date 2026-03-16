@@ -10,4 +10,5 @@ requests
 scipy
 psutil
 matplotlib
-ultralytics --no-deps
+ultralytics
+opencv-python-headless
