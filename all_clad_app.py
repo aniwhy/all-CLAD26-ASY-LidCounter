@@ -701,74 +701,71 @@ class LidDetector(VideoProcessorBase):
 
 
 # ── Header ────────────────────────────────────────────────
-hcol_l, hcol_r = st.columns([7, 1])
+hcol_toggle, hcol_logo, hcol_title, hcol_theme = st.columns([0.5, 1, 7, 1])
 
-with hcol_l:
-    logo_col, title_col = st.columns([1, 9])
-    with logo_col:
-        if logo_b64:
-            st.markdown(
-                f"<img src='data:image/png;base64,{logo_b64}' "
-                f"style='width:64px;margin-top:8px;'/>",
-                unsafe_allow_html=True
-            )
-    with title_col:
-        st.markdown(f"""
-            <div style='padding-top:10px'>
-                <div style='font-size:21px;font-weight:700;
-                            color:{TEXT};letter-spacing:0.5px'>
-                    All-Clad Lid Inventory
-                </div>
-                <div style='font-size:11px;color:{TEXT_DIMMER};
-                            letter-spacing:2px;text-transform:uppercase;
-                            margin-top:4px'>
-                    Computer Vision Tracking &nbsp;·&nbsp; Production Line 1
-                </div>
+with hcol_toggle:
+    st.markdown("<div style='padding-top:10px'></div>", unsafe_allow_html=True)
+    arrow = ">" if not st.session_state.sidebar_open else "<"
+    if st.button(arrow, key="sidebar_toggle"):
+        st.session_state.sidebar_open = not st.session_state.sidebar_open
+        st.rerun()
+
+with hcol_logo:
+    if logo_b64:
+        st.markdown(
+            f"<img src='data:image/png;base64,{logo_b64}' "
+            f"style='width:64px;margin-top:8px;'/>",
+            unsafe_allow_html=True
+        )
+
+with hcol_title:
+    st.markdown(f"""
+        <div style='padding-top:10px'>
+            <div style='font-size:21px;font-weight:700;
+                        color:{TEXT};letter-spacing:0.5px'>
+                All-Clad Lid Inventory
             </div>
-        """, unsafe_allow_html=True)
+            <div style='font-size:11px;color:{TEXT_DIMMER};
+                        letter-spacing:2px;text-transform:uppercase;
+                        margin-top:4px'>
+                Computer Vision Tracking &nbsp;·&nbsp; Production Line 1
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-with hcol_r:
+with hcol_theme:
     st.markdown("<div style='padding-top:12px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='theme-btn'>", unsafe_allow_html=True)
-    if st.button("☀ Light" if dark else "☾ Dark", key="theme_toggle"):
+    if st.button("☀" if dark else "☾", key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown(
-    f"<div style='height:1px;"
-    f"background:linear-gradient(90deg,transparent,{RED},transparent);"
-    f"margin:14px 0 22px 0'></div>",
-    unsafe_allow_html=True
-)
+# Apply sidebar open/close state
+if not st.session_state.sidebar_open:
+    st.markdown("""
+        <style>
+        [data-testid="stSidebar"] { display: none !important; }
+        </style>
+    """, unsafe_allow_html=True)
 
-# ── Sidebar ───────────────────────────────────────────────
-st.sidebar.markdown(
-    f"<p style='font-size:10px;font-weight:700;letter-spacing:2.5px;"
-    f"text-transform:uppercase;color:{RED};border-bottom:1px solid {BORDER};"
-    f"padding-bottom:8px;margin-bottom:16px;margin-top:8px'>"
-    f"System Control</p>",
-    unsafe_allow_html=True
-)
-conf_threshold = st.sidebar.slider("Detection Confidence", 0.3, 0.9, 0.5)
-reset_btn      = st.sidebar.button("⟳  Hard Reset")
-mode           = st.sidebar.radio(
-    "Input Mode",
-    ["Live Camera (WebRTC)", "Demo Video", "Upload Video"]
-)
-st.sidebar.markdown(
-    f"<div style='height:1px;background:{BORDER};margin:16px 0'></div>",
-    unsafe_allow_html=True
-)
-st.sidebar.markdown(
-    f"<p style='font-size:10px;color:{TEXT_DIMMER};letter-spacing:1px;"
-    f"text-transform:uppercase;line-height:2.4'>"
-    f"Model · lidDetection.pt<br>"
-    f"Buffer · 15 frames<br>"
-    f"Confirm · 8 frames</p>",
-    unsafe_allow_html=True
-)
+# ── Sidebar toggle (replaces broken built-in arrow) ───────
+st.markdown(f"""
+    <style>
+    /* Completely hide the default Streamlit sidebar toggle */
+    [data-testid="collapsedControl"] {{
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+    }}
+    </style>
+""", unsafe_allow_html=True)
 
+# Our own toggle in the header
+if 'sidebar_open' not in st.session_state:
+    st.session_state.sidebar_open = True
 # ── Main layout ───────────────────────────────────────────
 col1, col2 = st.columns([2, 1])
 
