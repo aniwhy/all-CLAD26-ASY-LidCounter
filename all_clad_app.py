@@ -12,7 +12,7 @@ import base64
 st.set_page_config(
     page_title="All-Clad Lid Inventory",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"  # changed from collapsed
 )
 
 # ── State init ────────────────────────────────────────────
@@ -401,14 +401,12 @@ st.markdown(f"""
 
 # ── Welcome screen ────────────────────────────────────────
 if not st.session_state.show_app:
-
-    # Hide sidebar and header on welcome
     st.markdown("""
         <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        [data-testid="stHeader"]  { display: none !important; }
-        header { display: none !important; }
-        .main .block-container { padding-top: 0 !important; }
+        [data-testid="stSidebar"]    { display: none !important; }
+        [data-testid="stHeader"]     { display: none !important; }
+        header                       { display: none !important; }
+        .main .block-container       { padding-top: 0 !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -719,7 +717,9 @@ st.markdown(
 
 # ── Sidebar ───────────────────────────────────────────────
 st.sidebar.markdown(
-    "<div class='section-header'>System Control</div>",
+    f"<p style='font-size:10px;font-weight:700;letter-spacing:2.5px;"
+    f"text-transform:uppercase;color:{RED};border-bottom:1px solid {BORDER};"
+    f"padding-bottom:8px;margin-bottom:16px'>System Control</p>",
     unsafe_allow_html=True
 )
 conf_threshold = st.sidebar.slider("Detection Confidence", 0.3, 0.9, 0.5)
@@ -732,15 +732,14 @@ st.sidebar.markdown(
     f"<div style='height:1px;background:{BORDER};margin:16px 0'></div>",
     unsafe_allow_html=True
 )
-st.sidebar.markdown(f"""
-    <div style='font-size:10px;color:{TEXT_DIMMER};letter-spacing:1px;
-                text-transform:uppercase;line-height:2.4'>
-        Model · lidDetection.pt<br>
-        Buffer · 15 frames<br>
-        Confirm · 8 frames
-    </div>
-""", unsafe_allow_html=True)
-
+st.sidebar.markdown(
+    f"<p style='font-size:10px;color:{TEXT_DIMMER};letter-spacing:1px;"
+    f"text-transform:uppercase;line-height:2.4'>"
+    f"Model · lidDetection.pt<br>"
+    f"Buffer · 15 frames<br>"
+    f"Confirm · 8 frames</p>",
+    unsafe_allow_html=True
+)
 
 # ── Main layout ───────────────────────────────────────────
 col1, col2 = st.columns([2, 1])
