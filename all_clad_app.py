@@ -8,7 +8,7 @@ from collections import deque
 # --- ALL-CLAD BRANDED UI ---
 st.set_page_config(page_title="All-Clad AI Inventory", layout="wide")
 
-# Custom CSS to give it a professional dark-industrial look
+# Professional dark-industrial styling
 st.markdown("""
     <style>
     .main { background-color: #0e1117; }
@@ -25,33 +25,46 @@ st.sidebar.header("System Control")
 conf_threshold = st.sidebar.slider("AI Confidence", 0.3, 0.9, 0.5)
 reset_btn = st.sidebar.button("Hard Reset Inventory")
 
+# Use session state to keep data alive during reruns
 if 'total_inv' not in st.session_state or reset_btn:
     st.session_state.total_inv = 0
 if 'log_data' not in st.session_state:
     st.session_state.log_data = []
 
-# --- CORE LOGIC WRAPPER ---
+# --- CORE AI MODEL ---
 @st.cache_resource
 def get_model():
     return YOLO('lidDetection.pt')
 
 model = get_model()
 
-# --- LAYOUT COLUMNS ---
+# --- LAYOUT ---
 col1, col2 = st.columns([2, 1])
 
 with col1:
     st.subheader("Live Sensor Feed")
-    frame_window = st.empty()
+    frame_window = st.empty()  # Placeholder for the video
 
 with col2:
     st.subheader("Real-Time Metrics")
-    metric_box = st.empty()
+    metric_box = st.empty()    # Placeholder for counters
     st.subheader("Event History")
-    history_box = st.empty()
+    history_box = st.empty()   # Placeholder for logs
 
-# --- PRODUCTION LOGIC ENGINE (V4.0) ---
-# Using the exact logic from your V4 script but integrated for Web
+# --- VIDEO INITIALIZATION ---
+PHONE_IP_URL = "http://192.168.0.52:4747/video"
+
+# We open the capture once and store it in session state
+if 'cap' not in st.session_state:
+    cap = cv2.VideoCapture(PHONE_IP_URL)
+    if not cap.isOpened():
+        # Fallback to demo video if phone isn't connected
+        cap = cv2.VideoCapture("demo_production.mp4")
+    st.session_state.cap = cap
+
+cap = st.session_state.cap
+
+# --- LOGIC CONSTANTS ---
 BUFFER_SIZE = 15
 lid_memory = deque(maxlen=BUFFER_SIZE)
 last_stable_count = 0
@@ -60,11 +73,13 @@ calibrated = False
 missing_count = 0
 PICK_CONFIDENCE = 10
 
-cap = cv2.VideoCapture(0)
-
+# --- MAIN LOOP ---
 while cap.isOpened():
     ret, frame = cap.read()
-    if not ret: break
+    if not ret:
+        # If video ends, restart it (great for the demo video loop)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        continue
 
     results = model(frame, conf=conf_threshold, imgsz=640, verbose=False)
     
@@ -78,7 +93,7 @@ while cap.isOpened():
             if label == 'hand': hands.append(coords)
             else: lids.append(coords)
             
-            # Draw for Web Feed
+            # Annotate frame
             x1, y1, x2, y2 = map(int, coords)
             color = (255, 191, 0) if label == 'hand' else (0, 255, 127)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
@@ -92,18 +107,19 @@ while cap.isOpened():
         st.session_state.total_inv = stable_count
         calibrated = True
 
-    # Stack Addition
-    if calibrated and stable_count > 0 and last_stable_count == 0:
+    # Detection: Stack Added
+    if calibrated and stable_count > last_stable_count and last_stable_count == 0:
         st.session_state.total_inv += 5
         st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+5)")
 
-    # Pick Detection
+    # Detection: Hand Pick
     hand_contact = any(
         not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3]) 
         for h in hands for l in lids
     )
     
-    if hand_contact: hand_touching_active = True
+    if hand_contact: 
+        hand_touching_active = True
     
     if hand_touching_active and current_visible < stable_count:
         missing_count += 1
@@ -116,16 +132,14 @@ while cap.isOpened():
 
     last_stable_count = stable_count
 
-    # --- REFRESH DASHBOARD ---
-    # Metrics
+    # --- UI UPDATES ---
     with metric_box.container():
         st.metric("CURRENT INVENTORY", f"{st.session_state.total_inv} Units")
-        st.write(f"Sensors: {stable_count} Active | Hand Link: {'CONNECTED' if hand_contact else 'IDLE'}")
+        status = "CONNECTED" if hand_contact else "IDLE"
+        st.write(f"Sensors: {stable_count} Active | Hand Link: {status}")
 
-    # Video
     frame_window.image(frame, channels="BGR", use_column_width=True)
-
-    # Logs
     history_box.text("\n".join(st.session_state.log_data[:8]))
 
-cap.release()
+    # Small sleep to prevent CPU spiking
+    time.sleep(0.01)
