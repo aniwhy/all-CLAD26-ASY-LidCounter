@@ -23,6 +23,7 @@ st.sidebar.header("System Control")
 st.sidebar.image("logo.png", width=150)
 conf_threshold = st.sidebar.slider("AI Confidence", 0.3, 0.9, 0.5)
 reset_btn = st.sidebar.button("Hard Reset Inventory Count")
+mode = st.sidebar.radio("Input Mode", ["Live Camera View (WebRTC)", "Demo Video"])
 
 # --- SESSION STATE ---
 if 'total_inv' not in st.session_state or reset_btn:
