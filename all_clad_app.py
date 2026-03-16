@@ -293,7 +293,7 @@ def render_metrics(total_inv, calibrated, cam_status=None):
         <div class='metric-card'>
             <div class='metric-label'>Current Inventory</div>
             <div class='metric-value'>{total_inv}</div>
-            <div style='margin-top:4px;font-size:13px;color:#8b949e'>units on line</div>
+            <div style='margin-top:4px;font-size:13px;color:#8b949e'>units in tote</div>
             <div style='margin-top:10px'>{cal_badge} {status_badge}</div>
         </div>
     """, unsafe_allow_html=True)
