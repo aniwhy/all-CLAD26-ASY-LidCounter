@@ -3,42 +3,41 @@ import cv2
 from ultralytics import YOLO
 import time
 import pandas as pd
-from collections import deque
 
 # --- ALL-CLAD BRANDED UI ---
-st.set_page_config(page_title="All-Clad AI Inventory", layout="wide")
+st.set_page_config(page_title="All-Clad Lid Inventory", layout="wide")
 
-# Professional dark-industrial styling
 st.markdown("""
     <style>
     .main { background-color: #0e1117; }
     .stMetric { background-color: #161b22; padding: 15px; border-radius: 10px; border: 1px solid #30363d; }
     </style>
-    """, unsafe_allow_html=True)  # FIXED: was unsafe_allow_name_with_html
+    """, unsafe_allow_html=True)
 
-st.title("🏭 All-Clad Inventory Systems")
-st.write("Production Line 1 | Lid Detection Unit V4.0")
+st.title("All-Clad Lid Inventory Tracking")
+st.write("Lid Count Tracking | Anirudh Yuvaraj")
 
 # --- SIDEBAR CONTROLS ---
-st.sidebar.image("https://www.all-clad.com/static/version1675344383/frontend/AllClad/default/en_US/images/logo.svg", width=150)
+st.sidebar.image("https://arnoldstreet.com/project/all-clad-cookware", width=150)
 st.sidebar.header("System Control")
 conf_threshold = st.sidebar.slider("AI Confidence", 0.3, 0.9, 0.5)
-reset_btn = st.sidebar.button("Hard Reset Inventory")
+reset_btn = st.sidebar.button("Hard Reset Inventory Count")
 
-# Use session state to keep data alive during reruns
+# --- SESSION STATE INITIALIZATION ---
+# Using plain lists/primitives only — deque is not safely serializable in session_state
 if 'total_inv' not in st.session_state or reset_btn:
     st.session_state.total_inv = 0
-if 'log_data' not in st.session_state:
+if 'log_data' not in st.session_state or reset_btn:
     st.session_state.log_data = []
-if 'calibrated' not in st.session_state:
-    st.session_state.calibrated = False
-if 'lid_memory' not in st.session_state:
-    st.session_state.lid_memory = deque(maxlen=15)
-if 'last_stable_count' not in st.session_state:
+if 'lid_memory' not in st.session_state or reset_btn:
+    st.session_state.lid_memory = []          # plain list, capped manually at 15
+if 'last_stable_count' not in st.session_state or reset_btn:
     st.session_state.last_stable_count = 0
-if 'hand_touching_active' not in st.session_state:
+if 'hand_touching_active' not in st.session_state or reset_btn:
     st.session_state.hand_touching_active = False
-if 'missing_count' not in st.session_state:
+if 'calibrated' not in st.session_state or reset_btn:
+    st.session_state.calibrated = False
+if 'missing_count' not in st.session_state or reset_btn:
     st.session_state.missing_count = 0
 
 # --- CORE AI MODEL ---
@@ -63,6 +62,8 @@ with col2:
 
 # --- VIDEO INITIALIZATION ---
 PHONE_IP_URL = "http://192.168.0.52:4747/video"
+BUFFER_SIZE = 15
+PICK_CONFIDENCE = 10
 
 if 'cap' not in st.session_state:
     cap = cv2.VideoCapture(PHONE_IP_URL)
@@ -71,10 +72,6 @@ if 'cap' not in st.session_state:
     st.session_state.cap = cap
 
 cap = st.session_state.cap
-
-# --- LOGIC CONSTANTS ---
-BUFFER_SIZE = 15
-PICK_CONFIDENCE = 10
 
 # --- MAIN LOOP ---
 while cap.isOpened():
@@ -101,15 +98,20 @@ while cap.isOpened():
             color = (255, 191, 0) if label == 'hand' else (0, 255, 127)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
-    # Logic Calculations — all state pulled from session_state so it
-    # survives Streamlit reruns instead of resetting every frame
+    # --- LOGIC ---
     current_visible = len(lids)
+
+    # Append and manually cap at BUFFER_SIZE (replaces deque)
     st.session_state.lid_memory.append(current_visible)
+    if len(st.session_state.lid_memory) > BUFFER_SIZE:
+        st.session_state.lid_memory.pop(0)
+
     stable_count = (
         max(set(st.session_state.lid_memory), key=st.session_state.lid_memory.count)
         if st.session_state.lid_memory else 0
     )
 
+    # Calibrate on first full buffer
     if not st.session_state.calibrated and len(st.session_state.lid_memory) == BUFFER_SIZE:
         st.session_state.total_inv = stable_count
         st.session_state.calibrated = True
@@ -147,7 +149,7 @@ while cap.isOpened():
         status = "CONNECTED" if hand_contact else "IDLE"
         st.write(f"Sensors: {stable_count} Active | Hand Link: {status}")
 
-    frame_window.image(frame, channels="BGR", use_container_width=True)  # FIXED: use_column_width deprecated
+    frame_window.image(frame, channels="BGR", width='stretch')  # fixed deprecated param
     history_box.text("\n".join(st.session_state.log_data[:8]))
 
     time.sleep(0.01)
