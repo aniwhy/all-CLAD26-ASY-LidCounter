@@ -8,99 +8,196 @@ import threading
 import tempfile
 import os
 
-st.set_page_config(page_title="All-Clad Lid Inventory", layout="wide")
+st.set_page_config(page_title="All-Clad Lid Inventory", layout="wide", initial_sidebar_state="collapsed")
 
-st.markdown("""
+# ── Theme state ───────────────────────────────────────────
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = True
+if 'show_app' not in st.session_state:
+    st.session_state.show_app = False
+
+dark = st.session_state.dark_mode
+
+# ── Theme variables ───────────────────────────────────────
+if dark:
+    BG          = "#111318"
+    BG2         = "#0d0f13"
+    BG3         = "#16191f"
+    BORDER      = "#252830"
+    TEXT        = "#d4cfc8"
+    TEXT_DIM    = "#8a8278"
+    TEXT_DIMMER = "#3d4048"
+    BEIGE       = "#c8b89a"
+    BEIGE_DIM   = "#8a7d68"
+    RED         = "#c41230"
+    RED_BRIGHT  = "#e8394f"
+    ARROW       = "#c8b89a"
+else:
+    BG          = "#f5f0eb"
+    BG2         = "#ede8e0"
+    BG3         = "#e8e0d5"
+    BORDER      = "#c8bfb0"
+    TEXT        = "#1a1814"
+    TEXT_DIM    = "#5a5248"
+    TEXT_DIMMER = "#8a8278"
+    BEIGE       = "#7a6a54"
+    BEIGE_DIM   = "#5a4a38"
+    RED         = "#c41230"
+    RED_BRIGHT  = "#a00e28"
+    ARROW       = "#7a6a54"
+
+st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
     html, body, [class*="css"], [data-testid],
     *, *::before, *::after,
-    button, input, select, textarea, p, span, div, a, label {
+    button, input, select, textarea, p, span, div, a, label {{
         font-family: 'Inter', sans-serif !important;
-    }
+    }}
 
-    .main, [data-testid="stAppViewContainer"] {
-        background-color: #111318;
-    }
-    [data-testid="stSidebar"] {
-        background-color: #0d0f13;
-        border-right: 1px solid #252830;
-    }
-
-    /* Make all text readable */
+    .main, [data-testid="stAppViewContainer"] {{
+        background-color: {BG};
+    }}
+    [data-testid="stSidebar"] {{
+        background-color: {BG2};
+        border-right: 1px solid {BORDER};
+    }}
     p, span, div, label, .stMarkdown,
     [data-testid="stText"],
-    [data-testid="stMarkdownContainer"] p {
-        color: #d4cfc8 !important;
-    }
+    [data-testid="stMarkdownContainer"] p {{
+        color: {TEXT} !important;
+    }}
+    h1, h2, h3 {{ color: {TEXT} !important; }}
 
-    h1, h2, h3 { color: #f0ebe3 !important; }
+    /* Welcome screen */
+    .welcome-screen {{
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: {BG2};
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 40px;
+    }}
+    .welcome-logo {{
+        width: 120px;
+        margin-bottom: 24px;
+        opacity: 0.95;
+    }}
+    .welcome-title {{
+        font-size: 32px;
+        font-weight: 700;
+        color: {TEXT};
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }}
+    .welcome-sub {{
+        font-size: 13px;
+        color: {TEXT_DIM};
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 48px;
+    }}
+    .welcome-divider {{
+        width: 48px;
+        height: 2px;
+        background: {RED};
+        margin: 0 auto 48px auto;
+    }}
+    .welcome-hint {{
+        font-size: 12px;
+        color: {TEXT_DIMMER};
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-top: 4px;
+    }}
+    .welcome-arrow {{
+        font-size: 22px;
+        color: {ARROW};
+        animation: bounce 1.8s ease infinite;
+        display: block;
+        margin-top: 12px;
+    }}
+    @keyframes bounce {{
+        0%, 100% {{ transform: translateY(0); opacity: 0.6; }}
+        50%       {{ transform: translateY(8px); opacity: 1; }}
+    }}
+    @keyframes fadeOut {{
+        from {{ opacity: 1; transform: translateY(0); }}
+        to   {{ opacity: 0; transform: translateY(-40px); }}
+    }}
+    .welcome-screen.hiding {{
+        animation: fadeOut 0.5s ease forwards;
+    }}
 
     /* Animations */
-    @keyframes pulse-red {
-        0%   { box-shadow: 0 0 0 0 rgba(196,18,48,0.5); }
-        70%  { box-shadow: 0 0 0 8px rgba(196,18,48,0); }
-        100% { box-shadow: 0 0 0 0 rgba(196,18,48,0); }
-    }
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(5px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes shimmer-red {
-        0%   { background-position: 0%; }
-        100% { background-position: 200%; }
-    }
-    @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50%       { opacity: 0.4; }
-    }
+    @keyframes pulse-red {{
+        0%   {{ box-shadow: 0 0 0 0 rgba(196,18,48,0.5); }}
+        70%  {{ box-shadow: 0 0 0 8px rgba(196,18,48,0); }}
+        100% {{ box-shadow: 0 0 0 0 rgba(196,18,48,0); }}
+    }}
+    @keyframes fadeInUp {{
+        from {{ opacity: 0; transform: translateY(5px); }}
+        to   {{ opacity: 1; transform: translateY(0); }}
+    }}
+    @keyframes shimmer-red {{
+        0%   {{ background-position: 0%; }}
+        100% {{ background-position: 200%; }}
+    }}
+    @keyframes blink {{
+        0%, 100% {{ opacity: 1; }}
+        50%       {{ opacity: 0.4; }}
+    }}
 
     /* Metric card */
-    .metric-card {
-        background: #16191f;
-        border: 1px solid #252830;
+    .metric-card {{
+        background: {BG3};
+        border: 1px solid {BORDER};
         border-radius: 10px;
         padding: 22px 24px;
         margin-bottom: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         animation: fadeInUp 0.3s ease;
         position: relative;
         overflow: hidden;
-    }
-    .metric-card::before {
+    }}
+    .metric-card::before {{
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0;
         height: 2px;
-        background: linear-gradient(90deg, #6b0015, #c41230, #e8394f, #c41230, #6b0015);
+        background: linear-gradient(90deg, #6b0015, {RED}, {RED_BRIGHT}, {RED}, #6b0015);
         background-size: 200%;
         animation: shimmer-red 4s linear infinite;
-    }
-    .metric-label {
+    }}
+    .metric-label {{
         font-size: 10px !important;
         font-weight: 700 !important;
         letter-spacing: 2px !important;
         text-transform: uppercase !important;
-        color: #8a8278 !important;
+        color: {TEXT_DIM} !important;
         margin-bottom: 10px !important;
-    }
-    .metric-value {
+    }}
+    .metric-value {{
         font-size: 58px !important;
         font-weight: 700 !important;
-        color: #f0ebe3 !important;
+        color: {TEXT} !important;
         line-height: 1 !important;
         font-family: 'JetBrains Mono', monospace !important;
-    }
-    .metric-sub {
+    }}
+    .metric-sub {{
         font-size: 11px !important;
-        color: #3d4048 !important;
+        color: {TEXT_DIMMER} !important;
         margin-top: 6px !important;
         letter-spacing: 1px !important;
-    }
+    }}
 
     /* Badges */
-    .badge {
+    .badge {{
         display: inline-block;
         padding: 4px 11px;
         border-radius: 20px;
@@ -110,231 +207,221 @@ st.markdown("""
         text-transform: uppercase;
         margin-top: 12px;
         margin-right: 5px;
-        font-family: 'Inter', sans-serif !important;
-    }
-    .badge-active {
+    }}
+    .badge-active {{
         background: rgba(196,18,48,0.12);
-        color: #e8394f;
+        color: {RED_BRIGHT};
         border: 1px solid rgba(196,18,48,0.35);
         animation: pulse-red 2s infinite;
-    }
-    .badge-idle {
-        background: rgba(212,207,200,0.06);
-        color: #6b6560;
-        border: 1px solid rgba(212,207,200,0.12);
-    }
-    .badge-calibrated {
-        background: rgba(210,190,150,0.08);
-        color: #c8b89a;
-        border: 1px solid rgba(210,190,150,0.2);
-    }
-    .badge-waiting {
+    }}
+    .badge-idle {{
+        background: rgba(138,130,120,0.1);
+        color: {TEXT_DIM};
+        border: 1px solid rgba(138,130,120,0.2);
+    }}
+    .badge-calibrated {{
+        background: rgba(200,184,154,0.1);
+        color: {BEIGE};
+        border: 1px solid rgba(200,184,154,0.25);
+    }}
+    .badge-waiting {{
         background: rgba(196,18,48,0.08);
-        color: #c41230;
+        color: {RED};
         border: 1px solid rgba(196,18,48,0.2);
         animation: blink 1.5s ease infinite;
-    }
+    }}
 
     /* Log card */
-    .log-card {
-        background: #0d0f13;
-        border: 1px solid #252830;
+    .log-card {{
+        background: {BG2};
+        border: 1px solid {BORDER};
         border-radius: 8px;
         padding: 14px 16px;
         font-family: 'JetBrains Mono', monospace !important;
         font-size: 11px !important;
-        color: #6b6560;
+        color: {TEXT_DIM};
         min-height: 200px;
         line-height: 2.2;
-    }
-    .log-entry-remove {
-        color: #e8394f !important;
+    }}
+    .log-entry-remove {{
+        color: {RED_BRIGHT} !important;
         font-family: 'JetBrains Mono', monospace !important;
-    }
-    .log-entry-add {
-        color: #c8b89a !important;
+    }}
+    .log-entry-add {{
+        color: {BEIGE} !important;
         font-family: 'JetBrains Mono', monospace !important;
-    }
-    .log-entry-cal {
-        color: #4a4d55 !important;
+    }}
+    .log-entry-cal {{
+        color: {TEXT_DIMMER} !important;
         font-family: 'JetBrains Mono', monospace !important;
-    }
+    }}
 
     /* Section headers */
-    .section-header {
+    .section-header {{
         font-size: 10px !important;
         font-weight: 700 !important;
         letter-spacing: 2.5px !important;
         text-transform: uppercase !important;
-        color: #c41230 !important;
-        border-bottom: 1px solid #252830 !important;
+        color: {RED} !important;
+        border-bottom: 1px solid {BORDER} !important;
         padding-bottom: 8px !important;
         margin-bottom: 16px !important;
-    }
+    }}
 
-    /* ALL buttons — very aggressive override */
+    /* Buttons */
     button,
     .stButton > button,
-    [kind="primary"], [kind="secondary"],
     [data-testid="baseButton-primary"],
     [data-testid="baseButton-secondary"],
-    [data-baseweb="button"] {
+    [data-baseweb="button"] {{
         font-family: 'Inter', sans-serif !important;
-        background-color: #16191f !important;
-        color: #c8b89a !important;
-        border: 1px solid #252830 !important;
+        background-color: {BG3} !important;
+        color: {BEIGE} !important;
+        border: 1px solid {BORDER} !important;
         border-radius: 6px !important;
         font-size: 12px !important;
         font-weight: 500 !important;
         letter-spacing: 0.3px !important;
         transition: all 0.2s !important;
         padding: 8px 16px !important;
-    }
+    }}
     button:hover,
     .stButton > button:hover,
     [data-testid="baseButton-primary"]:hover,
     [data-testid="baseButton-secondary"]:hover,
-    [data-baseweb="button"]:hover {
-        border-color: #c41230 !important;
-        color: #e8394f !important;
-        background-color: #1c1218 !important;
-        box-shadow: 0 0 10px rgba(196,18,48,0.15) !important;
-    }
+    [data-baseweb="button"]:hover {{
+        border-color: {RED} !important;
+        color: {RED_BRIGHT} !important;
+        background-color: {BG2} !important;
+        box-shadow: 0 0 10px rgba(196,18,48,0.12) !important;
+    }}
 
     /* Slider */
-    .stSlider > div > div > div > div {
-        background-color: #c41230 !important;
-    }
-    .stSlider [data-testid="stThumbValue"] {
-        color: #c8b89a !important;
-    }
-
-    /* Slider label */
-    .stSlider label {
-        color: #8a8278 !important;
+    .stSlider > div > div > div > div {{
+        background-color: {RED} !important;
+    }}
+    .stSlider label {{
+        color: {TEXT_DIM} !important;
         font-size: 12px !important;
-    }
+    }}
 
     /* Radio */
-    .stRadio > label {
-        color: #8a8278 !important;
+    .stRadio > label {{
+        color: {TEXT_DIM} !important;
         font-size: 11px !important;
-        letter-spacing: 0.5px !important;
-    }
-    .stRadio [data-testid="stMarkdownContainer"] p {
-        color: #d4cfc8 !important;
+    }}
+    .stRadio [data-testid="stMarkdownContainer"] p {{
+        color: {TEXT} !important;
         font-size: 13px !important;
-    }
+    }}
 
     /* File uploader */
-    [data-testid="stFileUploader"] {
-        background: #0d0f13 !important;
-        border: 1px dashed #252830 !important;
+    [data-testid="stFileUploader"] {{
+        background: {BG2} !important;
+        border: 1px dashed {BORDER} !important;
         border-radius: 8px !important;
-    }
+    }}
     [data-testid="stFileUploader"] span,
-    [data-testid="stFileUploader"] p {
-        color: #6b6560 !important;
+    [data-testid="stFileUploader"] p {{
+        color: {TEXT_DIM} !important;
         font-size: 12px !important;
-    }
+    }}
 
     /* Hide default metric */
-    [data-testid="stMetric"] { display: none; }
+    [data-testid="stMetric"] {{ display: none; }}
 
     /* Sidebar text */
     [data-testid="stSidebar"] p,
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] div {
-        color: #8a8278 !important;
+    [data-testid="stSidebar"] div {{
+        color: {TEXT_DIM} !important;
         font-size: 12px !important;
-    }
+    }}
+
+    /* Theme toggle button — special styling */
+    .theme-btn > button {{
+        background: transparent !important;
+        border: 1px solid {BORDER} !important;
+        color: {BEIGE} !important;
+        font-size: 13px !important;
+        padding: 6px 14px !important;
+        border-radius: 20px !important;
+    }}
+    .theme-btn > button:hover {{
+        border-color: {RED} !important;
+        color: {RED_BRIGHT} !important;
+    }}
 
     /* Footer */
-    .footer {
+    .footer {{
         margin-top: 48px;
         padding: 18px 0 8px 0;
-        border-top: 1px solid #252830;
+        border-top: 1px solid {BORDER};
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
         gap: 10px;
-    }
-    .footer-left {
+    }}
+    .footer-left {{
         font-size: 12px;
-        color: #4a4d55;
-        font-family: 'Inter', sans-serif !important;
-    }
-    .footer-left strong { color: #8a8278; font-weight: 600; }
-    .footer-right {
+        color: {TEXT_DIMMER};
+    }}
+    .footer-left strong {{ color: {TEXT_DIM}; font-weight: 600; }}
+    .footer-right {{
         font-size: 10px;
-        color: #2d3038;
+        color: {TEXT_DIMMER};
         letter-spacing: 2px;
         text-transform: uppercase;
-        font-family: 'Inter', sans-serif !important;
-    }
-    .footer a {
-        color: #c41230 !important;
-        text-decoration: none;
-        font-family: 'Inter', sans-serif !important;
-    }
-    .footer a:hover { color: #e8394f !important; }
+    }}
+    .footer a {{ color: {RED} !important; text-decoration: none; }}
+    .footer a:hover {{ color: {RED_BRIGHT} !important; }}
 
     /* Scrollbar */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #0d0f13; }
-    ::-webkit-scrollbar-thumb { background: #252830; border-radius: 2px; }
+    ::-webkit-scrollbar {{ width: 4px; }}
+    ::-webkit-scrollbar-track {{ background: {BG2}; }}
+    ::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 2px; }}
     </style>
 """, unsafe_allow_html=True)
 
 
-# ── Header ───────────────────────────────────────────────
-col_logo, col_title = st.columns([1, 8])
-with col_logo:
-    st.image("logo.png", width=68)
-with col_title:
-    st.markdown("""
-        <div style='padding-top:10px'>
-            <div style='font-size:22px;font-weight:700;color:#f0ebe3;
-                        letter-spacing:0.5px;font-family:Inter,sans-serif'>
-                All-Clad Lid Inventory
-            </div>
-            <div style='font-size:11px;color:#3d4048;letter-spacing:2px;
-                        text-transform:uppercase;margin-top:4px;
-                        font-family:Inter,sans-serif'>
-                Computer Vision Tracking &nbsp;·&nbsp; Production Line 1
-            </div>
+# ── Welcome screen ────────────────────────────────────────
+if not st.session_state.show_app:
+    st.markdown(f"""
+        <div class="welcome-screen" id="welcome">
+            <img src="app/static/logo.png" class="welcome-logo"
+                 onerror="this.style.display='none'"/>
+            <div class="welcome-title">All-Clad Lid Inventory</div>
+            <div class="welcome-sub">Computer Vision Tracking System</div>
+            <div class="welcome-divider"></div>
+            <div class="welcome-hint">Scroll down or tap to begin</div>
+            <span class="welcome-arrow">↓</span>
         </div>
     """, unsafe_allow_html=True)
 
-st.markdown(
-    "<div style='height:1px;background:linear-gradient(90deg,transparent,#c41230,transparent);"
-    "margin:14px 0 22px 0'></div>",
-    unsafe_allow_html=True
-)
+    st.markdown(f"""
+        <script>
+        // Listen for scroll or click to dismiss welcome screen
+        function dismissWelcome() {{
+            var el = document.getElementById('welcome');
+            if (el) {{
+                el.classList.add('hiding');
+                setTimeout(function() {{ el.style.display = 'none'; }}, 500);
+            }}
+        }}
+        window.addEventListener('scroll', dismissWelcome, {{ once: true }});
+        document.addEventListener('click', dismissWelcome, {{ once: true }});
+        </script>
+    """, unsafe_allow_html=True)
 
-# ── Sidebar ───────────────────────────────────────────────
-st.sidebar.markdown(
-    "<div class='section-header'>System Control</div>",
-    unsafe_allow_html=True
-)
-conf_threshold = st.sidebar.slider("Detection Confidence", 0.3, 0.9, 0.5)
-reset_btn = st.sidebar.button("⟳  Hard Reset")
-mode = st.sidebar.radio("Input Mode", ["Live Camera (WebRTC)", "Demo Video", "Upload Video"])
-st.sidebar.markdown(
-    "<div style='height:1px;background:#252830;margin:16px 0'></div>",
-    unsafe_allow_html=True
-)
-st.sidebar.markdown("""
-    <div style='font-size:10px;color:#3d4048;letter-spacing:1px;
-                text-transform:uppercase;line-height:2.4;
-                font-family:Inter,sans-serif'>
-        Model · lidDetection.pt<br>
-        Buffer · 15 frames<br>
-        Confirm · 8 frames
-    </div>
-""", unsafe_allow_html=True)
+    col_enter = st.columns([3, 2, 3])[1]
+    with col_enter:
+        st.markdown("<div style='height:60vh'></div>", unsafe_allow_html=True)
+        if st.button("Enter →", key="enter_btn"):
+            st.session_state.show_app = True
+            st.rerun()
+    st.stop()
 
 
 # ── Model ─────────────────────────────────────────────────
@@ -454,9 +541,9 @@ def render_metrics(total_inv, calibrated, cam_status=None):
 
 def render_log(log):
     if not log:
-        log_placeholder.markdown("""
+        log_placeholder.markdown(f"""
             <div class='log-card'>
-                <span style='color:#252830;font-family:JetBrains Mono,monospace'>
+                <span style='color:{BORDER};font-family:JetBrains Mono,monospace'>
                     — awaiting events —
                 </span>
             </div>
@@ -516,9 +603,9 @@ def process_video_loop(cap, frame_window, s, conf):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 170, 120), 1)
         for c in last_lids:
             x1, y1, x2, y2 = map(int, c)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (196, 18, 48), 2)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (48, 18, 196), 2)
             cv2.putText(frame, 'lid', (x1, y1-5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (196, 18, 48), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (48, 18, 196), 1)
 
         hand_contact = any(
             not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
@@ -555,7 +642,7 @@ class LidDetector(VideoProcessorBase):
                 else:
                     lids.append(coords)
                 x1, y1, x2, y2 = map(int, coords)
-                color = (200, 170, 120) if label == 'hand' else (196, 18, 48)
+                color = (200, 170, 120) if label == 'hand' else (48, 18, 196)
                 cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(img, label, (x1, y1-5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1)
@@ -573,6 +660,62 @@ class LidDetector(VideoProcessorBase):
     def get_display(self):
         with self.lock:
             return self.s["total_inv"], list(self.s["log"]), self.s["calibrated"]
+
+
+# ── Header ────────────────────────────────────────────────
+header_l, header_r = st.columns([6, 1])
+with header_l:
+    col_logo, col_title = st.columns([1, 8])
+    with col_logo:
+        st.image("logo.png", width=68)
+    with col_title:
+        st.markdown(f"""
+            <div style='padding-top:10px'>
+                <div style='font-size:22px;font-weight:700;color:{TEXT};letter-spacing:0.5px'>
+                    All-Clad Lid Inventory
+                </div>
+                <div style='font-size:11px;color:{TEXT_DIMMER};letter-spacing:2px;
+                            text-transform:uppercase;margin-top:4px'>
+                    Computer Vision Tracking &nbsp;·&nbsp; Production Line 1
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+with header_r:
+    st.markdown("<div style='padding-top:14px'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='theme-btn'>", unsafe_allow_html=True)
+    toggle_label = "☀ Light" if dark else "☾ Dark"
+    if st.button(toggle_label, key="theme_toggle"):
+        st.session_state.dark_mode = not st.session_state.dark_mode
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown(
+    f"<div style='height:1px;background:linear-gradient(90deg,transparent,{RED},transparent);"
+    f"margin:14px 0 22px 0'></div>",
+    unsafe_allow_html=True
+)
+
+# ── Sidebar ───────────────────────────────────────────────
+st.sidebar.markdown(
+    "<div class='section-header'>System Control</div>",
+    unsafe_allow_html=True
+)
+conf_threshold = st.sidebar.slider("Detection Confidence", 0.3, 0.9, 0.5)
+reset_btn = st.sidebar.button("⟳  Hard Reset")
+mode = st.sidebar.radio("Input Mode", ["Live Camera (WebRTC)", "Demo Video", "Upload Video"])
+st.sidebar.markdown(
+    f"<div style='height:1px;background:{BORDER};margin:16px 0'></div>",
+    unsafe_allow_html=True
+)
+st.sidebar.markdown(f"""
+    <div style='font-size:10px;color:{TEXT_DIMMER};letter-spacing:1px;
+                text-transform:uppercase;line-height:2.4'>
+        Model · lidDetection.pt<br>
+        Buffer · 15 frames<br>
+        Confirm · 8 frames
+    </div>
+""", unsafe_allow_html=True)
 
 
 # ── Layout ────────────────────────────────────────────────
@@ -654,10 +797,10 @@ with col1:
         else:
             render_metrics(s_demo["total_inv"], s_demo["calibrated"])
             render_log(s_demo["log"])
-            st.markdown("""
-                <div style='color:#3d4048;font-size:12px;text-align:center;
-                            padding:48px;border:1px dashed #252830;border-radius:8px;
-                            letter-spacing:1px;font-family:Inter,sans-serif'>
+            st.markdown(f"""
+                <div style='color:{TEXT_DIMMER};font-size:12px;text-align:center;
+                            padding:48px;border:1px dashed {BORDER};border-radius:8px;
+                            letter-spacing:1px'>
                     Press ▶ Start Demo to begin
                 </div>
             """, unsafe_allow_html=True)
@@ -712,27 +855,27 @@ with col1:
             else:
                 render_metrics(s_upload["total_inv"], s_upload["calibrated"])
                 render_log(s_upload["log"])
-                st.markdown("""
-                    <div style='color:#3d4048;font-size:12px;text-align:center;
-                                padding:48px;border:1px dashed #252830;border-radius:8px;
-                                letter-spacing:1px;font-family:Inter,sans-serif'>
+                st.markdown(f"""
+                    <div style='color:{TEXT_DIMMER};font-size:12px;text-align:center;
+                                padding:48px;border:1px dashed {BORDER};border-radius:8px;
+                                letter-spacing:1px'>
                         Press ▶ Start to begin
                     </div>
                 """, unsafe_allow_html=True)
         else:
             render_metrics(0, False)
             render_log([])
-            st.markdown("""
-                <div style='color:#3d4048;font-size:12px;text-align:center;
-                            padding:48px;border:1px dashed #252830;border-radius:8px;
-                            letter-spacing:1px;font-family:Inter,sans-serif'>
+            st.markdown(f"""
+                <div style='color:{TEXT_DIMMER};font-size:12px;text-align:center;
+                            padding:48px;border:1px dashed {BORDER};border-radius:8px;
+                            letter-spacing:1px'>
                     Upload a .mp4 / .mov / .avi to begin
                 </div>
             """, unsafe_allow_html=True)
 
 
 # ── Footer ────────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
     <div class='footer'>
         <div class='footer-left'>
             Built by&nbsp;
