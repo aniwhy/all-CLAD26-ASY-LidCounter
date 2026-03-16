@@ -1,14 +1,4 @@
 streamlit
 opencv-python-headless
 pandas
-torch
-torchvision
-numpy
-pillow
-pyyaml
-requests
-scipy
-psutil
-matplotlib
 ultralytics
-opencv-python-headless
