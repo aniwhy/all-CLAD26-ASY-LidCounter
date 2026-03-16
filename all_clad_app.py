@@ -1,8 +1,12 @@
-import streamlit as st
 import subprocess
 import sys
+
+# Force remove full opencv and reinstall headless before cv2 ever loads
 subprocess.run([sys.executable, "-m", "pip", "uninstall", "opencv-python", "-y"], 
                capture_output=True)
+subprocess.run([sys.executable, "-m", "pip", "install", "opencv-python-headless", "--force-reinstall", "-q"],
+               capture_output=True)
+import streamlit as st
 import cv2
 from ultralytics import YOLO
 import time
