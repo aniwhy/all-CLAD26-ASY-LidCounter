@@ -12,10 +12,10 @@ import base64
 st.set_page_config(
     page_title="All-Clad Lid Inventory",
     layout="wide",
-    initial_sidebar_state="expanded"  # changed from collapsed
+    initial_sidebar_state="expanded"
 )
 
-# ── State init ────────────────────────────────────────────
+# ── State ─────────────────────────────────────────────────
 if 'dark_mode' not in st.session_state:
     st.session_state.dark_mode = True
 if 'show_app' not in st.session_state:
@@ -49,364 +49,394 @@ else:
     RED_BRIGHT  = "#a00e28"
     ARROW       = "#7a6a54"
 
-# ── Logo base64 ───────────────────────────────────────────
+# ── Logo ──────────────────────────────────────────────────
 logo_b64 = ""
 logo_html = ""
 try:
     with open("logo.png", "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
-    logo_html = f"<img src='data:image/png;base64,{logo_b64}' style='width:100px;margin-bottom:28px;'/>"
+    logo_html = (
+        f"<img src='data:image/png;base64,{logo_b64}' "
+        f"style='width:100px;margin-bottom:28px;'/>"
+    )
 except Exception:
     pass
 
-# ── Global CSS ────────────────────────────────────────────
+# ── CSS ───────────────────────────────────────────────────
 st.markdown(f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
-    html, body, [class*="css"], [data-testid],
-    *, *::before, *::after,
-    button, input, select, textarea, p, span, div, a, label {{
-        font-family: 'Inter', sans-serif !important;
-    }}
+html, body, [class*="css"], [data-testid],
+*, *::before, *::after,
+button, input, select, textarea, p, span, div, a, label {{
+    font-family: 'Inter', sans-serif !important;
+}}
 
-    .main, [data-testid="stAppViewContainer"] {{
-        background-color: {BG} !important;
-    }}
-    [data-testid="stSidebar"] {{
-        background-color: {BG2} !important;
-        border-right: 1px solid {BORDER} !important;
-    }}
-    p, span, label, .stMarkdown,
-    [data-testid="stText"],
-    [data-testid="stMarkdownContainer"] p {{
-        color: {TEXT} !important;
-    }}
-    h1, h2, h3 {{ color: {TEXT} !important; }}
+.main, [data-testid="stAppViewContainer"] {{
+    background-color: {BG} !important;
+}}
+[data-testid="stSidebar"] {{
+    background-color: {BG2} !important;
+    border-right: 1px solid {BORDER} !important;
+}}
+p, span, label, .stMarkdown,
+[data-testid="stText"],
+[data-testid="stMarkdownContainer"] p {{
+    color: {TEXT} !important;
+}}
+h1, h2, h3 {{ color: {TEXT} !important; }}
 
-    /* Animations */
-    @keyframes pulse-red {{
-        0%   {{ box-shadow: 0 0 0 0 rgba(196,18,48,0.5); }}
-        70%  {{ box-shadow: 0 0 0 8px rgba(196,18,48,0); }}
-        100% {{ box-shadow: 0 0 0 0 rgba(196,18,48,0); }}
-    }}
-    @keyframes fadeInUp {{
-        from {{ opacity: 0; transform: translateY(5px); }}
-        to   {{ opacity: 1; transform: translateY(0); }}
-    }}
-    @keyframes shimmer-red {{
-        0%   {{ background-position: 0%; }}
-        100% {{ background-position: 200%; }}
-    }}
-    @keyframes blink {{
-        0%, 100% {{ opacity: 1; }}
-        50%       {{ opacity: 0.4; }}
-    }}
-    @keyframes bounce {{
-        0%, 100% {{ transform: translateY(0); opacity: 0.5; }}
-        50%       {{ transform: translateY(8px); opacity: 1; }}
-    }}
+/* Sidebar toggle arrow — replace SVG with > < */
+[data-testid="collapsedControl"] svg {{ display: none !important; }}
+[data-testid="collapsedControl"] {{
+    background: {BG3} !important;
+    border: 1px solid {BORDER} !important;
+    border-radius: 0 6px 6px 0 !important;
+    color: {BEIGE} !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+}}
+[data-testid="collapsedControl"]:hover {{
+    border-color: {RED} !important;
+    color: {RED_BRIGHT} !important;
+}}
+[data-testid="collapsedControl"]::after {{
+    content: '>';
+    font-family: 'Inter', sans-serif !important;
+    font-size: 13px;
+    font-weight: 700;
+    color: {BEIGE};
+}}
+[data-testid="stSidebar"][aria-expanded="true"]
+  + [data-testid="collapsedControl"]::after {{
+    content: '<';
+}}
 
-    /* Welcome */
-    .welcome-wrap {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 88vh;
-        text-align: center;
-        padding: 40px 20px 20px 20px;
-    }}
-    .welcome-title {{
-        font-size: 30px;
-        font-weight: 700;
-        color: {TEXT};
-        letter-spacing: 1px;
-        margin-bottom: 8px;
-    }}
-    .welcome-sub {{
-        font-size: 12px;
-        color: {TEXT_DIM};
-        letter-spacing: 2.5px;
-        text-transform: uppercase;
-        margin-bottom: 40px;
-    }}
-    .welcome-divider {{
-        width: 40px;
-        height: 2px;
-        background: {RED};
-        margin: 0 auto 40px auto;
-    }}
-    .welcome-hint {{
-        font-size: 11px;
-        color: {TEXT_DIMMER};
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }}
-    .welcome-arrow {{
-        font-size: 20px;
-        color: {ARROW};
-        animation: bounce 1.8s ease infinite;
-        display: block;
-        margin-top: 6px;
-        margin-bottom: 28px;
-    }}
+/* Animations */
+@keyframes pulse-red {{
+    0%   {{ box-shadow: 0 0 0 0 rgba(196,18,48,0.5); }}
+    70%  {{ box-shadow: 0 0 0 8px rgba(196,18,48,0); }}
+    100% {{ box-shadow: 0 0 0 0 rgba(196,18,48,0); }}
+}}
+@keyframes fadeInUp {{
+    from {{ opacity: 0; transform: translateY(5px); }}
+    to   {{ opacity: 1; transform: translateY(0); }}
+}}
+@keyframes shimmer-red {{
+    0%   {{ background-position: 0%; }}
+    100% {{ background-position: 200%; }}
+}}
+@keyframes blink {{
+    0%, 100% {{ opacity: 1; }}
+    50%       {{ opacity: 0.4; }}
+}}
+@keyframes bounce {{
+    0%, 100% {{ transform: translateY(0);  opacity: 0.5; }}
+    50%       {{ transform: translateY(8px); opacity: 1; }}
+}}
 
-    /* Metric card */
-    .metric-card {{
-        background: {BG3};
-        border: 1px solid {BORDER};
-        border-radius: 10px;
-        padding: 22px 24px;
-        margin-bottom: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        animation: fadeInUp 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }}
-    .metric-card::before {{
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, #6b0015, {RED}, {RED_BRIGHT}, {RED}, #6b0015);
-        background-size: 200%;
-        animation: shimmer-red 4s linear infinite;
-    }}
-    .metric-label {{
-        font-size: 10px !important;
-        font-weight: 700 !important;
-        letter-spacing: 2px !important;
-        text-transform: uppercase !important;
-        color: {TEXT_DIM} !important;
-        margin-bottom: 10px !important;
-    }}
-    .metric-value {{
-        font-size: 58px !important;
-        font-weight: 700 !important;
-        color: {TEXT} !important;
-        line-height: 1 !important;
-        font-family: 'JetBrains Mono', monospace !important;
-    }}
-    .metric-sub {{
-        font-size: 11px !important;
-        color: {TEXT_DIMMER} !important;
-        margin-top: 6px !important;
-        letter-spacing: 1px !important;
-    }}
+/* Welcome */
+.welcome-wrap {{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 88vh;
+    text-align: center;
+    padding: 40px 20px 20px 20px;
+}}
+.welcome-title {{
+    font-size: 30px;
+    font-weight: 700;
+    color: {TEXT};
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}}
+.welcome-sub {{
+    font-size: 12px;
+    color: {TEXT_DIM};
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+}}
+.welcome-divider {{
+    width: 40px;
+    height: 2px;
+    background: {RED};
+    margin: 0 auto 40px auto;
+}}
+.welcome-hint {{
+    font-size: 11px;
+    color: {TEXT_DIMMER};
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}}
+.welcome-arrow {{
+    font-size: 20px;
+    color: {ARROW};
+    animation: bounce 1.8s ease infinite;
+    display: block;
+    margin-top: 6px;
+    margin-bottom: 28px;
+}}
 
-    /* Badges */
-    .badge {{
-        display: inline-block;
-        padding: 4px 11px;
-        border-radius: 20px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        margin-top: 12px;
-        margin-right: 5px;
-    }}
-    .badge-active {{
-        background: rgba(196,18,48,0.12);
-        color: {RED_BRIGHT};
-        border: 1px solid rgba(196,18,48,0.35);
-        animation: pulse-red 2s infinite;
-    }}
-    .badge-idle {{
-        background: rgba(138,130,120,0.1);
-        color: {TEXT_DIM};
-        border: 1px solid rgba(138,130,120,0.2);
-    }}
-    .badge-calibrated {{
-        background: rgba(200,184,154,0.1);
-        color: {BEIGE};
-        border: 1px solid rgba(200,184,154,0.25);
-    }}
-    .badge-waiting {{
-        background: rgba(196,18,48,0.08);
-        color: {RED};
-        border: 1px solid rgba(196,18,48,0.2);
-        animation: blink 1.5s ease infinite;
-    }}
+/* Metric card */
+.metric-card {{
+    background: {BG3};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    animation: fadeInUp 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}}
+.metric-card::before {{
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,#6b0015,{RED},{RED_BRIGHT},{RED},#6b0015);
+    background-size: 200%;
+    animation: shimmer-red 4s linear infinite;
+}}
+.metric-label {{
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase !important;
+    color: {TEXT_DIM} !important;
+    margin-bottom: 10px !important;
+}}
+.metric-value {{
+    font-size: 58px !important;
+    font-weight: 700 !important;
+    color: {TEXT} !important;
+    line-height: 1 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}}
+.metric-sub {{
+    font-size: 11px !important;
+    color: {TEXT_DIMMER} !important;
+    margin-top: 6px !important;
+    letter-spacing: 1px !important;
+}}
 
-    /* Log card */
-    .log-card {{
-        background: {BG2};
-        border: 1px solid {BORDER};
-        border-radius: 8px;
-        padding: 14px 16px;
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 11px !important;
-        color: {TEXT_DIM};
-        min-height: 200px;
-        line-height: 2.2;
-    }}
-    .log-entry-remove {{
-        color: {RED_BRIGHT} !important;
-        font-family: 'JetBrains Mono', monospace !important;
-    }}
-    .log-entry-add {{
-        color: {BEIGE} !important;
-        font-family: 'JetBrains Mono', monospace !important;
-    }}
-    .log-entry-cal {{
-        color: {TEXT_DIMMER} !important;
-        font-family: 'JetBrains Mono', monospace !important;
-    }}
+/* Badges */
+.badge {{
+    display: inline-block;
+    padding: 4px 11px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 12px;
+    margin-right: 5px;
+}}
+.badge-active {{
+    background: rgba(196,18,48,0.12);
+    color: {RED_BRIGHT};
+    border: 1px solid rgba(196,18,48,0.35);
+    animation: pulse-red 2s infinite;
+}}
+.badge-idle {{
+    background: rgba(138,130,120,0.1);
+    color: {TEXT_DIM};
+    border: 1px solid rgba(138,130,120,0.2);
+}}
+.badge-calibrated {{
+    background: rgba(200,184,154,0.1);
+    color: {BEIGE};
+    border: 1px solid rgba(200,184,154,0.25);
+}}
+.badge-waiting {{
+    background: rgba(196,18,48,0.08);
+    color: {RED};
+    border: 1px solid rgba(196,18,48,0.2);
+    animation: blink 1.5s ease infinite;
+}}
 
-    /* Section headers */
-    .section-header {{
-        font-size: 10px !important;
-        font-weight: 700 !important;
-        letter-spacing: 2.5px !important;
-        text-transform: uppercase !important;
-        color: {RED} !important;
-        border-bottom: 1px solid {BORDER} !important;
-        padding-bottom: 8px !important;
-        margin-bottom: 16px !important;
-    }}
+/* Log card */
+.log-card {{
+    background: {BG2};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important;
+    color: {TEXT_DIM};
+    min-height: 200px;
+    line-height: 2.2;
+}}
+.log-entry-remove {{
+    color: {RED_BRIGHT} !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}}
+.log-entry-add {{
+    color: {BEIGE} !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}}
+.log-entry-cal {{
+    color: {TEXT_DIMMER} !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}}
 
-    /* Buttons */
-    button,
-    .stButton > button,
-    [data-testid="baseButton-primary"],
-    [data-testid="baseButton-secondary"],
-    [data-baseweb="button"] {{
-        font-family: 'Inter', sans-serif !important;
-        background-color: {BG3} !important;
-        color: {BEIGE} !important;
-        border: 1px solid {BORDER} !important;
-        border-radius: 6px !important;
-        font-size: 12px !important;
-        font-weight: 500 !important;
-        letter-spacing: 0.3px !important;
-        transition: all 0.2s !important;
-        padding: 8px 16px !important;
-    }}
-    button:hover,
-    .stButton > button:hover,
-    [data-testid="baseButton-primary"]:hover,
-    [data-testid="baseButton-secondary"]:hover,
-    [data-baseweb="button"]:hover {{
-        border-color: {RED} !important;
-        color: {RED_BRIGHT} !important;
-        background-color: {BG2} !important;
-        box-shadow: 0 0 10px rgba(196,18,48,0.12) !important;
-    }}
+/* Section headers */
+.section-header {{
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 2.5px !important;
+    text-transform: uppercase !important;
+    color: {RED} !important;
+    border-bottom: 1px solid {BORDER} !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 16px !important;
+}}
 
-    /* Slider */
-    .stSlider > div > div > div > div {{
-        background-color: {RED} !important;
-    }}
-    .stSlider label {{
-        color: {TEXT_DIM} !important;
-        font-size: 12px !important;
-    }}
+/* Buttons */
+button,
+.stButton > button,
+[data-testid="baseButton-primary"],
+[data-testid="baseButton-secondary"],
+[data-baseweb="button"] {{
+    font-family: 'Inter', sans-serif !important;
+    background-color: {BG3} !important;
+    color: {BEIGE} !important;
+    border: 1px solid {BORDER} !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.3px !important;
+    transition: all 0.2s !important;
+    padding: 8px 16px !important;
+}}
+button:hover,
+.stButton > button:hover,
+[data-testid="baseButton-primary"]:hover,
+[data-testid="baseButton-secondary"]:hover,
+[data-baseweb="button"]:hover {{
+    border-color: {RED} !important;
+    color: {RED_BRIGHT} !important;
+    background-color: {BG2} !important;
+    box-shadow: 0 0 10px rgba(196,18,48,0.12) !important;
+}}
 
-    /* Radio */
-    .stRadio > label {{
-        color: {TEXT_DIM} !important;
-        font-size: 11px !important;
-    }}
-    .stRadio [data-testid="stMarkdownContainer"] p {{
-        color: {TEXT} !important;
-        font-size: 13px !important;
-    }}
+/* Theme toggle pill */
+.theme-btn > button {{
+    background: transparent !important;
+    border: 1px solid {BORDER} !important;
+    color: {BEIGE} !important;
+    font-size: 12px !important;
+    padding: 6px 14px !important;
+    border-radius: 20px !important;
+    letter-spacing: 0.5px !important;
+}}
+.theme-btn > button:hover {{
+    border-color: {RED} !important;
+    color: {RED_BRIGHT} !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}}
 
-    /* File uploader */
-    [data-testid="stFileUploader"] {{
-        background: {BG2} !important;
-        border: 1px dashed {BORDER} !important;
-        border-radius: 8px !important;
-    }}
-    [data-testid="stFileUploader"] span,
-    [data-testid="stFileUploader"] p {{
-        color: {TEXT_DIM} !important;
-        font-size: 12px !important;
-    }}
+/* Slider */
+.stSlider > div > div > div > div {{
+    background-color: {RED} !important;
+}}
+.stSlider label {{
+    color: {TEXT_DIM} !important;
+    font-size: 12px !important;
+}}
 
-    /* Hide default metric */
-    [data-testid="stMetric"] {{ display: none; }}
+/* Radio */
+.stRadio > label {{
+    color: {TEXT_DIM} !important;
+    font-size: 11px !important;
+}}
+.stRadio [data-testid="stMarkdownContainer"] p {{
+    color: {TEXT} !important;
+    font-size: 13px !important;
+}}
 
-    /* Sidebar text */
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] div {{
-        color: {TEXT_DIM} !important;
-        font-size: 12px !important;
-    }}
+/* File uploader */
+[data-testid="stFileUploader"] {{
+    background: {BG2} !important;
+    border: 1px dashed {BORDER} !important;
+    border-radius: 8px !important;
+}}
+[data-testid="stFileUploader"] span,
+[data-testid="stFileUploader"] p {{
+    color: {TEXT_DIM} !important;
+    font-size: 12px !important;
+}}
 
-    /* Theme toggle */
-    .theme-btn > button {{
-        background: transparent !important;
-        border: 1px solid {BORDER} !important;
-        color: {BEIGE} !important;
-        font-size: 12px !important;
-        padding: 6px 14px !important;
-        border-radius: 20px !important;
-        letter-spacing: 0.5px !important;
-    }}
-    .theme-btn > button:hover {{
-        border-color: {RED} !important;
-        color: {RED_BRIGHT} !important;
-        background: transparent !important;
-    }}
+/* Hide default metric widget */
+[data-testid="stMetric"] {{ display: none; }}
 
-    /* Footer */
-    .footer {{
-        margin-top: 48px;
-        padding: 18px 0 8px 0;
-        border-top: 1px solid {BORDER};
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-    }}
-    .footer-left {{
-        font-size: 12px;
-        color: {TEXT_DIMMER};
-    }}
-    .footer-left strong {{ color: {TEXT_DIM}; font-weight: 600; }}
-    .footer-right {{
-        font-size: 10px;
-        color: {TEXT_DIMMER};
-        letter-spacing: 2px;
-        text-transform: uppercase;
-    }}
-    .footer a {{ color: {RED} !important; text-decoration: none; }}
-    .footer a:hover {{ color: {RED_BRIGHT} !important; }}
+/* Sidebar text */
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] div {{
+    color: {TEXT_DIM} !important;
+    font-size: 12px !important;
+}}
 
-    /* Scrollbar */
-    ::-webkit-scrollbar {{ width: 4px; }}
-    ::-webkit-scrollbar-track {{ background: {BG2}; }}
-    ::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 2px; }}
+/* Footer */
+.footer {{
+    margin-top: 48px;
+    padding: 18px 0 8px 0;
+    border-top: 1px solid {BORDER};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}}
+.footer-left  {{ font-size: 12px; color: {TEXT_DIMMER}; }}
+.footer-left strong {{ color: {TEXT_DIM}; font-weight: 600; }}
+.footer-right {{
+    font-size: 10px;
+    color: {TEXT_DIMMER};
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}}
+.footer a       {{ color: {RED} !important; text-decoration: none; }}
+.footer a:hover {{ color: {RED_BRIGHT} !important; }}
 
-    /* Placeholder boxes */
-    .placeholder-box {{
-        color: {TEXT_DIMMER};
-        font-size: 12px;
-        text-align: center;
-        padding: 48px;
-        border: 1px dashed {BORDER};
-        border-radius: 8px;
-        letter-spacing: 1px;
-    }}
-    </style>
+/* Placeholder boxes */
+.placeholder-box {{
+    color: {TEXT_DIMMER};
+    font-size: 12px;
+    text-align: center;
+    padding: 48px;
+    border: 1px dashed {BORDER};
+    border-radius: 8px;
+    letter-spacing: 1px;
+}}
+
+/* Scrollbar */
+::-webkit-scrollbar       {{ width: 4px; }}
+::-webkit-scrollbar-track {{ background: {BG2}; }}
+::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 2px; }}
+</style>
 """, unsafe_allow_html=True)
 
 
 # ── Welcome screen ────────────────────────────────────────
 if not st.session_state.show_app:
+
     st.markdown("""
         <style>
-        [data-testid="stSidebar"]    { display: none !important; }
-        [data-testid="stHeader"]     { display: none !important; }
-        header                       { display: none !important; }
-        .main .block-container       { padding-top: 0 !important; }
+        [data-testid="stSidebar"]      { display: none !important; }
+        [data-testid="collapsedControl"]{ display: none !important; }
+        [data-testid="stHeader"]       { display: none !important; }
+        header                         { display: none !important; }
+        .main .block-container         { padding-top: 0 !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -437,7 +467,7 @@ def get_model():
 
 model = get_model()
 
-BUFFER_SIZE = 15
+BUFFER_SIZE       = 15
 CONFIRM_THRESHOLD = 8
 
 RTC_CONFIG = RTCConfiguration({
@@ -451,20 +481,19 @@ RTC_CONFIG = RTCConfiguration({
 # ── Logic ─────────────────────────────────────────────────
 def make_state():
     return {
-        "lid_memory":      [],
-        "baseline":        0,
-        "calibrated":      False,
+        "lid_memory":       [],
+        "baseline":         0,
+        "calibrated":       False,
         "hand_was_present": False,
-        "hand_is_present": False,
-        "count_at_touch":  0,
-        "confirm_frames":  0,
-        "total_inv":       0,
-        "log":             [],
+        "hand_is_present":  False,
+        "count_at_touch":   0,
+        "confirm_frames":   0,
+        "total_inv":        0,
+        "log":              [],
     }
 
 
 def run_logic(current_visible, hand_contact, s):
-    # Only update memory when hand is not blocking view
     if not hand_contact:
         s["lid_memory"].append(current_visible)
         if len(s["lid_memory"]) > BUFFER_SIZE:
@@ -475,7 +504,6 @@ def run_logic(current_visible, hand_contact, s):
 
     stable = max(set(s["lid_memory"]), key=s["lid_memory"].count)
 
-    # Calibrate
     if not s["calibrated"]:
         if len(s["lid_memory"]) == BUFFER_SIZE:
             s["baseline"]   = stable
@@ -497,16 +525,15 @@ def run_logic(current_visible, hand_contact, s):
         s["count_at_touch"]  = s["baseline"]
         s["confirm_frames"]  = 0
 
-    # Hand just left — reset confirmation counter
+    # Hand just left — reset confirmation
     if not hand_contact and s["hand_was_present"]:
         s["confirm_frames"] = 0
 
-    # Confirmation window after hand leaves
+    # Confirmation window
     if not hand_contact and s["hand_is_present"]:
         if current_visible < s["count_at_touch"]:
             s["confirm_frames"] += 1
         else:
-            # Count recovered — false alarm
             s["confirm_frames"]  = 0
             s["hand_is_present"] = False
 
@@ -520,7 +547,6 @@ def run_logic(current_visible, hand_contact, s):
             s["hand_is_present"] = False
             s["confirm_frames"]  = 0
 
-    # Update baseline only when hand is fully clear
     if not hand_contact and not s["hand_is_present"]:
         s["baseline"] = stable
 
@@ -530,9 +556,9 @@ def run_logic(current_visible, hand_contact, s):
 # ── Render helpers ────────────────────────────────────────
 def render_metrics(total_inv, calibrated, cam_status=None):
     cal_badge = (
-        f"<span class='badge badge-calibrated'>● Calibrated</span>"
+        "<span class='badge badge-calibrated'>● Calibrated</span>"
         if calibrated else
-        f"<span class='badge badge-waiting'>◌ Calibrating</span>"
+        "<span class='badge badge-waiting'>◌ Calibrating</span>"
     )
     status_badge = ""
     if cam_status == "ACTIVE":
@@ -609,20 +635,19 @@ def process_video_loop(cap, frame_window, s, conf):
 
         for c in last_hands:
             x1, y1, x2, y2 = map(int, c)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (160, 140, 100), 2)
-            cv2.putText(frame, 'hand', (x1, y1-5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (160, 140, 100), 1)
+            cv2.rectangle(frame, (x1,y1),(x2,y2),(160,140,100), 2)
+            cv2.putText(frame,'hand',(x1,y1-5),
+                        cv2.FONT_HERSHEY_SIMPLEX,0.45,(160,140,100),1)
         for c in last_lids:
             x1, y1, x2, y2 = map(int, c)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (48, 18, 196), 2)
-            cv2.putText(frame, 'lid', (x1, y1-5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (48, 18, 196), 1)
+            cv2.rectangle(frame, (x1,y1),(x2,y2),(48,18,196), 2)
+            cv2.putText(frame,'lid',(x1,y1-5),
+                        cv2.FONT_HERSHEY_SIMPLEX,0.45,(48,18,196),1)
 
         hand_contact = any(
-            not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
+            not (h[2]<l[0] or h[0]>l[2] or h[3]<l[1] or h[1]>l[3])
             for h in last_hands for l in last_lids
         )
-
         run_logic(len(last_lids), hand_contact, s)
         frame_window.image(frame, channels="BGR", width='stretch')
         render_metrics(s["total_inv"], s["calibrated"])
@@ -654,15 +679,15 @@ class LidDetector(VideoProcessorBase):
                     hands.append(coords)
                 else:
                     lids.append(coords)
-                x1, y1, x2, y2 = map(int, coords)
-                color = (160, 140, 100) if label == 'hand' else (48, 18, 196)
-                cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-                cv2.putText(img, label, (x1, y1-5),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1)
+                x1,y1,x2,y2 = map(int, coords)
+                color = (160,140,100) if label=='hand' else (48,18,196)
+                cv2.rectangle(img,(x1,y1),(x2,y2),color,2)
+                cv2.putText(img,label,(x1,y1-5),
+                            cv2.FONT_HERSHEY_SIMPLEX,0.45,color,1)
 
         current_visible = len(lids)
         hand_contact = any(
-            not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
+            not (h[2]<l[0] or h[0]>l[2] or h[3]<l[1] or h[1]>l[3])
             for h in hands for l in lids
         )
         with self.lock:
@@ -676,31 +701,33 @@ class LidDetector(VideoProcessorBase):
 
 
 # ── Header ────────────────────────────────────────────────
-header_l, header_r = st.columns([7, 1])
+hcol_l, hcol_r = st.columns([7, 1])
 
-with header_l:
-    col_logo, col_title = st.columns([1, 9])
-    with col_logo:
+with hcol_l:
+    logo_col, title_col = st.columns([1, 9])
+    with logo_col:
         if logo_b64:
             st.markdown(
                 f"<img src='data:image/png;base64,{logo_b64}' "
                 f"style='width:64px;margin-top:8px;'/>",
                 unsafe_allow_html=True
             )
-    with col_title:
+    with title_col:
         st.markdown(f"""
             <div style='padding-top:10px'>
-                <div style='font-size:21px;font-weight:700;color:{TEXT};letter-spacing:0.5px'>
+                <div style='font-size:21px;font-weight:700;
+                            color:{TEXT};letter-spacing:0.5px'>
                     All-Clad Lid Inventory
                 </div>
-                <div style='font-size:11px;color:{TEXT_DIMMER};letter-spacing:2px;
-                            text-transform:uppercase;margin-top:4px'>
+                <div style='font-size:11px;color:{TEXT_DIMMER};
+                            letter-spacing:2px;text-transform:uppercase;
+                            margin-top:4px'>
                     Computer Vision Tracking &nbsp;·&nbsp; Production Line 1
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-with header_r:
+with hcol_r:
     st.markdown("<div style='padding-top:12px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='theme-btn'>", unsafe_allow_html=True)
     if st.button("☀ Light" if dark else "☾ Dark", key="theme_toggle"):
@@ -719,12 +746,13 @@ st.markdown(
 st.sidebar.markdown(
     f"<p style='font-size:10px;font-weight:700;letter-spacing:2.5px;"
     f"text-transform:uppercase;color:{RED};border-bottom:1px solid {BORDER};"
-    f"padding-bottom:8px;margin-bottom:16px'>System Control</p>",
+    f"padding-bottom:8px;margin-bottom:16px;margin-top:8px'>"
+    f"System Control</p>",
     unsafe_allow_html=True
 )
 conf_threshold = st.sidebar.slider("Detection Confidence", 0.3, 0.9, 0.5)
-reset_btn = st.sidebar.button("⟳  Hard Reset")
-mode = st.sidebar.radio(
+reset_btn      = st.sidebar.button("⟳  Hard Reset")
+mode           = st.sidebar.radio(
     "Input Mode",
     ["Live Camera (WebRTC)", "Demo Video", "Upload Video"]
 )
@@ -745,7 +773,8 @@ st.sidebar.markdown(
 col1, col2 = st.columns([2, 1])
 
 with col2:
-    st.markdown("<div class='section-header'>Metrics</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>Metrics</div>",
+                unsafe_allow_html=True)
     metric_placeholder = st.empty()
     st.markdown(
         "<div class='section-header' style='margin-top:20px'>Event Log</div>",
@@ -756,7 +785,8 @@ with col2:
     render_log([])
 
 with col1:
-    st.markdown("<div class='section-header'>Camera Feed</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>Camera Feed</div>",
+                unsafe_allow_html=True)
 
     # ── Live Camera ──────────────────────────────────────
     if mode == "Live Camera (WebRTC)":
@@ -805,7 +835,7 @@ with col1:
         if 'demo_cap' not in st.session_state or reset_btn:
             if 'demo_cap' in st.session_state:
                 st.session_state.demo_cap.release()
-            st.session_state.demo_cap = cv2.VideoCapture("demo_video.mp4")
+            st.session_state.demo_cap     = cv2.VideoCapture("demo_video.mp4")
             st.session_state.demo_running = False
 
         frame_window = st.empty()
@@ -820,18 +850,15 @@ with col1:
         if st.session_state.get('demo_running', False):
             process_video_loop(
                 st.session_state.demo_cap,
-                frame_window,
-                s_demo,
-                conf_threshold
+                frame_window, s_demo, conf_threshold
             )
         else:
             render_metrics(s_demo["total_inv"], s_demo["calibrated"])
             render_log(s_demo["log"])
-            st.markdown(f"""
-                <div class='placeholder-box'>
-                    Press ▶ Start Demo to begin
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                "<div class='placeholder-box'>Press ▶ Start Demo to begin</div>",
+                unsafe_allow_html=True
+            )
 
     # ── Upload Video ─────────────────────────────────────
     else:
@@ -858,11 +885,11 @@ with col1:
                 tfile.write(uploaded.read())
                 tfile.flush()
                 tfile.close()
-                st.session_state.upload_cap    = cv2.VideoCapture(tfile.name)
-                st.session_state.upload_path   = tfile.name
-                st.session_state.upload_name   = uploaded.name
+                st.session_state.upload_cap     = cv2.VideoCapture(tfile.name)
+                st.session_state.upload_path    = tfile.name
+                st.session_state.upload_name    = uploaded.name
                 st.session_state.upload_running = False
-                st.session_state.s_upload      = make_state()
+                st.session_state.s_upload       = make_state()
                 s_upload = st.session_state.s_upload
 
             frame_window_up = st.empty()
@@ -877,26 +904,22 @@ with col1:
             if st.session_state.get('upload_running', False):
                 process_video_loop(
                     st.session_state.upload_cap,
-                    frame_window_up,
-                    s_upload,
-                    conf_threshold
+                    frame_window_up, s_upload, conf_threshold
                 )
             else:
                 render_metrics(s_upload["total_inv"], s_upload["calibrated"])
                 render_log(s_upload["log"])
-                st.markdown(f"""
-                    <div class='placeholder-box'>
-                        Press ▶ Start to begin
-                    </div>
-                """, unsafe_allow_html=True)
+                st.markdown(
+                    "<div class='placeholder-box'>Press ▶ Start to begin</div>",
+                    unsafe_allow_html=True
+                )
         else:
             render_metrics(0, False)
             render_log([])
-            st.markdown(f"""
-                <div class='placeholder-box'>
-                    Upload a .mp4 / .mov / .avi to begin
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                "<div class='placeholder-box'>Upload a .mp4 / .mov / .avi to begin</div>",
+                unsafe_allow_html=True
+            )
 
 
 # ── Footer ────────────────────────────────────────────────
