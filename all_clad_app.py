@@ -60,7 +60,7 @@ calibrated = False
 missing_count = 0
 PICK_CONFIDENCE = 10
 
-cap = cv2.VideoCapture("http://192.168.0.52:4747/video")
+cap = cv2.VideoCapture(0)
 
 while cap.isOpened():
     ret, frame = cap.read()
