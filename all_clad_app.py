@@ -16,10 +16,9 @@ st.set_page_config(
 )
 
 # ── State ─────────────────────────────────────────────────
-if 'dark_mode' not in st.session_state:
-    st.session_state.dark_mode = True
-if 'show_app' not in st.session_state:
-    st.session_state.show_app = False
+if 'dark_mode'     not in st.session_state: st.session_state.dark_mode     = True
+if 'show_app'      not in st.session_state: st.session_state.show_app      = False
+if 'sidebar_open'  not in st.session_state: st.session_state.sidebar_open  = True
 
 dark = st.session_state.dark_mode
 
@@ -87,31 +86,9 @@ p, span, label, .stMarkdown,
 }}
 h1, h2, h3 {{ color: {TEXT} !important; }}
 
-/* Sidebar toggle arrow — replace SVG with > < */
-[data-testid="collapsedControl"] svg {{ display: none !important; }}
+/* Hide the built-in sidebar toggle completely */
 [data-testid="collapsedControl"] {{
-    background: {BG3} !important;
-    border: 1px solid {BORDER} !important;
-    border-radius: 0 6px 6px 0 !important;
-    color: {BEIGE} !important;
-    font-family: 'Inter', sans-serif !important;
-    font-size: 14px !important;
-    font-weight: 700 !important;
-}}
-[data-testid="collapsedControl"]:hover {{
-    border-color: {RED} !important;
-    color: {RED_BRIGHT} !important;
-}}
-[data-testid="collapsedControl"]::after {{
-    content: '>';
-    font-family: 'Inter', sans-serif !important;
-    font-size: 13px;
-    font-weight: 700;
-    color: {BEIGE};
-}}
-[data-testid="stSidebar"][aria-expanded="true"]
-  + [data-testid="collapsedControl"]::after {{
-    content: '<';
+    display: none !important;
 }}
 
 /* Animations */
@@ -133,8 +110,8 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     50%       {{ opacity: 0.4; }}
 }}
 @keyframes bounce {{
-    0%, 100% {{ transform: translateY(0);  opacity: 0.5; }}
-    50%       {{ transform: translateY(8px); opacity: 1; }}
+    0%, 100% {{ transform: translateY(0);   opacity: 0.5; }}
+    50%       {{ transform: translateY(8px); opacity: 1;   }}
 }}
 
 /* Welcome */
@@ -273,18 +250,9 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     min-height: 200px;
     line-height: 2.2;
 }}
-.log-entry-remove {{
-    color: {RED_BRIGHT} !important;
-    font-family: 'JetBrains Mono', monospace !important;
-}}
-.log-entry-add {{
-    color: {BEIGE} !important;
-    font-family: 'JetBrains Mono', monospace !important;
-}}
-.log-entry-cal {{
-    color: {TEXT_DIMMER} !important;
-    font-family: 'JetBrains Mono', monospace !important;
-}}
+.log-entry-remove {{ color: {RED_BRIGHT} !important; font-family: 'JetBrains Mono', monospace !important; }}
+.log-entry-add    {{ color: {BEIGE} !important;      font-family: 'JetBrains Mono', monospace !important; }}
+.log-entry-cal    {{ color: {TEXT_DIMMER} !important; font-family: 'JetBrains Mono', monospace !important; }}
 
 /* Section headers */
 .section-header {{
@@ -326,7 +294,16 @@ button:hover,
     box-shadow: 0 0 10px rgba(196,18,48,0.12) !important;
 }}
 
-/* Theme toggle pill */
+/* Sidebar toggle button — make it narrow */
+.sidebar-toggle-btn > button {{
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    min-width: 32px !important;
+    letter-spacing: 0 !important;
+}}
+
+/* Theme pill button */
 .theme-btn > button {{
     background: transparent !important;
     border: 1px solid {BORDER} !important;
@@ -344,19 +321,11 @@ button:hover,
 }}
 
 /* Slider */
-.stSlider > div > div > div > div {{
-    background-color: {RED} !important;
-}}
-.stSlider label {{
-    color: {TEXT_DIM} !important;
-    font-size: 12px !important;
-}}
+.stSlider > div > div > div > div {{ background-color: {RED} !important; }}
+.stSlider label {{ color: {TEXT_DIM} !important; font-size: 12px !important; }}
 
 /* Radio */
-.stRadio > label {{
-    color: {TEXT_DIM} !important;
-    font-size: 11px !important;
-}}
+.stRadio > label {{ color: {TEXT_DIM} !important; font-size: 11px !important; }}
 .stRadio [data-testid="stMarkdownContainer"] p {{
     color: {TEXT} !important;
     font-size: 13px !important;
@@ -374,7 +343,7 @@ button:hover,
     font-size: 12px !important;
 }}
 
-/* Hide default metric widget */
+/* Hide default metric */
 [data-testid="stMetric"] {{ display: none; }}
 
 /* Sidebar text */
@@ -429,14 +398,13 @@ button:hover,
 
 # ── Welcome screen ────────────────────────────────────────
 if not st.session_state.show_app:
-
     st.markdown("""
         <style>
-        [data-testid="stSidebar"]      { display: none !important; }
+        [data-testid="stSidebar"]       { display: none !important; }
         [data-testid="collapsedControl"]{ display: none !important; }
-        [data-testid="stHeader"]       { display: none !important; }
-        header                         { display: none !important; }
-        .main .block-container         { padding-top: 0 !important; }
+        [data-testid="stHeader"]        { display: none !important; }
+        header                          { display: none !important; }
+        .main .block-container          { padding-top: 0 !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -458,6 +426,15 @@ if not st.session_state.show_app:
             st.rerun()
 
     st.stop()
+
+
+# ── Hide sidebar if toggled off ───────────────────────────
+if not st.session_state.sidebar_open:
+    st.markdown("""
+        <style>
+        [data-testid="stSidebar"] { display: none !important; }
+        </style>
+    """, unsafe_allow_html=True)
 
 
 # ── Model ─────────────────────────────────────────────────
@@ -512,24 +489,20 @@ def run_logic(current_visible, hand_contact, s):
             s["log"].insert(0, f"{time.strftime('%H:%M:%S')}  Calibrated — {stable} lids")
         return
 
-    # Stack added from empty
     if not hand_contact and stable > s["baseline"] and s["baseline"] == 0:
         s["total_inv"] += stable
         s["baseline"]   = stable
         s["log"].insert(0, f"{time.strftime('%H:%M:%S')}  Stack Added (+{stable})")
         s["log"] = s["log"][:20]
 
-    # Hand just touched — snapshot baseline
     if hand_contact and not s["hand_was_present"]:
         s["hand_is_present"] = True
         s["count_at_touch"]  = s["baseline"]
         s["confirm_frames"]  = 0
 
-    # Hand just left — reset confirmation
     if not hand_contact and s["hand_was_present"]:
         s["confirm_frames"] = 0
 
-    # Confirmation window
     if not hand_contact and s["hand_is_present"]:
         if current_visible < s["count_at_touch"]:
             s["confirm_frames"] += 1
@@ -634,13 +607,13 @@ def process_video_loop(cap, frame_window, s, conf):
                         last_lids.append(scaled)
 
         for c in last_hands:
-            x1, y1, x2, y2 = map(int, c)
-            cv2.rectangle(frame, (x1,y1),(x2,y2),(160,140,100), 2)
+            x1,y1,x2,y2 = map(int, c)
+            cv2.rectangle(frame,(x1,y1),(x2,y2),(160,140,100),2)
             cv2.putText(frame,'hand',(x1,y1-5),
                         cv2.FONT_HERSHEY_SIMPLEX,0.45,(160,140,100),1)
         for c in last_lids:
-            x1, y1, x2, y2 = map(int, c)
-            cv2.rectangle(frame, (x1,y1),(x2,y2),(48,18,196), 2)
+            x1,y1,x2,y2 = map(int, c)
+            cv2.rectangle(frame,(x1,y1),(x2,y2),(48,18,196),2)
             cv2.putText(frame,'lid',(x1,y1-5),
                         cv2.FONT_HERSHEY_SIMPLEX,0.45,(48,18,196),1)
 
@@ -701,14 +674,16 @@ class LidDetector(VideoProcessorBase):
 
 
 # ── Header ────────────────────────────────────────────────
-hcol_toggle, hcol_logo, hcol_title, hcol_theme = st.columns([0.5, 1, 7, 1])
+hcol_toggle, hcol_logo, hcol_title, hcol_theme = st.columns([0.4, 1, 7, 1])
 
 with hcol_toggle:
     st.markdown("<div style='padding-top:10px'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='sidebar-toggle-btn'>", unsafe_allow_html=True)
     arrow = ">" if not st.session_state.sidebar_open else "<"
     if st.button(arrow, key="sidebar_toggle"):
         st.session_state.sidebar_open = not st.session_state.sidebar_open
         st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with hcol_logo:
     if logo_b64:
@@ -736,36 +711,45 @@ with hcol_title:
 with hcol_theme:
     st.markdown("<div style='padding-top:12px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='theme-btn'>", unsafe_allow_html=True)
-    if st.button("☀" if dark else "☾", key="theme_toggle"):
+    if st.button("☀ Light" if dark else "☾ Dark", key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Apply sidebar open/close state
-if not st.session_state.sidebar_open:
-    st.markdown("""
-        <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
+st.markdown(
+    f"<div style='height:1px;"
+    f"background:linear-gradient(90deg,transparent,{RED},transparent);"
+    f"margin:14px 0 22px 0'></div>",
+    unsafe_allow_html=True
+)
 
-# ── Sidebar toggle (replaces broken built-in arrow) ───────
-st.markdown(f"""
-    <style>
-    /* Completely hide the default Streamlit sidebar toggle */
-    [data-testid="collapsedControl"] {{
-        visibility: hidden !important;
-        width: 0 !important;
-        height: 0 !important;
-        overflow: hidden !important;
-        position: absolute !important;
-    }}
-    </style>
-""", unsafe_allow_html=True)
+# ── Sidebar ───────────────────────────────────────────────
+st.sidebar.markdown(
+    f"<p style='font-size:10px;font-weight:700;letter-spacing:2.5px;"
+    f"text-transform:uppercase;color:{RED};border-bottom:1px solid {BORDER};"
+    f"padding-bottom:8px;margin-bottom:16px;margin-top:8px'>"
+    f"System Control</p>",
+    unsafe_allow_html=True
+)
+conf_threshold = st.sidebar.slider("Detection Confidence", 0.3, 0.9, 0.5)
+reset_btn      = st.sidebar.button("⟳  Hard Reset")
+mode           = st.sidebar.radio(
+    "Input Mode",
+    ["Live Camera (WebRTC)", "Demo Video", "Upload Video"]
+)
+st.sidebar.markdown(
+    f"<div style='height:1px;background:{BORDER};margin:16px 0'></div>",
+    unsafe_allow_html=True
+)
+st.sidebar.markdown(
+    f"<p style='font-size:10px;color:{TEXT_DIMMER};letter-spacing:1px;"
+    f"text-transform:uppercase;line-height:2.4'>"
+    f"Model · lidDetection.pt<br>"
+    f"Buffer · 15 frames<br>"
+    f"Confirm · 8 frames</p>",
+    unsafe_allow_html=True
+)
 
-# Our own toggle in the header
-if 'sidebar_open' not in st.session_state:
-    st.session_state.sidebar_open = True
 # ── Main layout ───────────────────────────────────────────
 col1, col2 = st.columns([2, 1])
 
