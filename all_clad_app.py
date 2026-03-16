@@ -16,9 +16,8 @@ st.set_page_config(
 )
 
 # ── State ─────────────────────────────────────────────────
-if 'dark_mode'     not in st.session_state: st.session_state.dark_mode     = True
-if 'show_app'      not in st.session_state: st.session_state.show_app      = False
-if 'sidebar_open'  not in st.session_state: st.session_state.sidebar_open  = True
+if 'dark_mode' not in st.session_state: st.session_state.dark_mode = True
+if 'show_app'  not in st.session_state: st.session_state.show_app  = False
 
 dark = st.session_state.dark_mode
 
@@ -79,17 +78,18 @@ button, input, select, textarea, p, span, div, a, label {{
     background-color: {BG2} !important;
     border-right: 1px solid {BORDER} !important;
 }}
+
+/* Hide the collapse/expand button permanently */
+[data-testid="collapsedControl"] {{
+    display: none !important;
+}}
+
 p, span, label, .stMarkdown,
 [data-testid="stText"],
 [data-testid="stMarkdownContainer"] p {{
     color: {TEXT} !important;
 }}
 h1, h2, h3 {{ color: {TEXT} !important; }}
-
-/* Hide the built-in sidebar toggle completely */
-[data-testid="collapsedControl"] {{
-    display: none !important;
-}}
 
 /* Animations */
 @keyframes pulse-red {{
@@ -294,16 +294,7 @@ button:hover,
     box-shadow: 0 0 10px rgba(196,18,48,0.12) !important;
 }}
 
-/* Sidebar toggle button — make it narrow */
-.sidebar-toggle-btn > button {{
-    padding: 8px 10px !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    min-width: 32px !important;
-    letter-spacing: 0 !important;
-}}
-
-/* Theme pill button */
+/* Theme pill */
 .theme-btn > button {{
     background: transparent !important;
     border: 1px solid {BORDER} !important;
@@ -327,8 +318,7 @@ button:hover,
 /* Radio */
 .stRadio > label {{ color: {TEXT_DIM} !important; font-size: 11px !important; }}
 .stRadio [data-testid="stMarkdownContainer"] p {{
-    color: {TEXT} !important;
-    font-size: 13px !important;
+    color: {TEXT} !important; font-size: 13px !important;
 }}
 
 /* File uploader */
@@ -339,8 +329,7 @@ button:hover,
 }}
 [data-testid="stFileUploader"] span,
 [data-testid="stFileUploader"] p {{
-    color: {TEXT_DIM} !important;
-    font-size: 12px !important;
+    color: {TEXT_DIM} !important; font-size: 12px !important;
 }}
 
 /* Hide default metric */
@@ -351,8 +340,7 @@ button:hover,
 [data-testid="stSidebar"] span,
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] div {{
-    color: {TEXT_DIM} !important;
-    font-size: 12px !important;
+    color: {TEXT_DIM} !important; font-size: 12px !important;
 }}
 
 /* Footer */
@@ -369,23 +357,17 @@ button:hover,
 .footer-left  {{ font-size: 12px; color: {TEXT_DIMMER}; }}
 .footer-left strong {{ color: {TEXT_DIM}; font-weight: 600; }}
 .footer-right {{
-    font-size: 10px;
-    color: {TEXT_DIMMER};
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    font-size: 10px; color: {TEXT_DIMMER};
+    letter-spacing: 2px; text-transform: uppercase;
 }}
 .footer a       {{ color: {RED} !important; text-decoration: none; }}
 .footer a:hover {{ color: {RED_BRIGHT} !important; }}
 
-/* Placeholder boxes */
+/* Placeholder */
 .placeholder-box {{
-    color: {TEXT_DIMMER};
-    font-size: 12px;
-    text-align: center;
-    padding: 48px;
-    border: 1px dashed {BORDER};
-    border-radius: 8px;
-    letter-spacing: 1px;
+    color: {TEXT_DIMMER}; font-size: 12px; text-align: center;
+    padding: 48px; border: 1px dashed {BORDER};
+    border-radius: 8px; letter-spacing: 1px;
 }}
 
 /* Scrollbar */
@@ -400,11 +382,11 @@ button:hover,
 if not st.session_state.show_app:
     st.markdown("""
         <style>
-        [data-testid="stSidebar"]       { display: none !important; }
-        [data-testid="collapsedControl"]{ display: none !important; }
-        [data-testid="stHeader"]        { display: none !important; }
-        header                          { display: none !important; }
-        .main .block-container          { padding-top: 0 !important; }
+        [data-testid="stSidebar"]        { display: none !important; }
+        [data-testid="collapsedControl"] { display: none !important; }
+        [data-testid="stHeader"]         { display: none !important; }
+        header                           { display: none !important; }
+        .main .block-container           { padding-top: 0 !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -426,15 +408,6 @@ if not st.session_state.show_app:
             st.rerun()
 
     st.stop()
-
-
-# ── Hide sidebar if toggled off ───────────────────────────
-if not st.session_state.sidebar_open:
-    st.markdown("""
-        <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        </style>
-    """, unsafe_allow_html=True)
 
 
 # ── Model ─────────────────────────────────────────────────
@@ -674,16 +647,7 @@ class LidDetector(VideoProcessorBase):
 
 
 # ── Header ────────────────────────────────────────────────
-hcol_toggle, hcol_logo, hcol_title, hcol_theme = st.columns([0.4, 1, 7, 1])
-
-with hcol_toggle:
-    st.markdown("<div style='padding-top:10px'></div>", unsafe_allow_html=True)
-    st.markdown("<div class='sidebar-toggle-btn'>", unsafe_allow_html=True)
-    arrow = ">" if not st.session_state.sidebar_open else "<"
-    if st.button(arrow, key="sidebar_toggle"):
-        st.session_state.sidebar_open = not st.session_state.sidebar_open
-        st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
+hcol_logo, hcol_title, hcol_theme = st.columns([1, 7, 1])
 
 with hcol_logo:
     if logo_b64:
@@ -769,7 +733,6 @@ with col1:
     st.markdown("<div class='section-header'>Camera Feed</div>",
                 unsafe_allow_html=True)
 
-    # ── Live Camera ──────────────────────────────────────
     if mode == "Live Camera (WebRTC)":
         for k in ['demo_cap', 'upload_cap']:
             if k in st.session_state:
@@ -803,7 +766,6 @@ with col1:
             render_metrics(0, False, cam_status="IDLE")
             render_log([])
 
-    # ── Demo Video ───────────────────────────────────────
     elif mode == "Demo Video":
         if 'upload_cap' in st.session_state:
             st.session_state.upload_cap.release()
@@ -841,7 +803,6 @@ with col1:
                 unsafe_allow_html=True
             )
 
-    # ── Upload Video ─────────────────────────────────────
     else:
         if 'demo_cap' in st.session_state:
             st.session_state.demo_cap.release()
