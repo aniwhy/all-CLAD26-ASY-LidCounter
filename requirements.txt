@@ -1,4 +1,13 @@
 streamlit
 opencv-python-headless
 pandas
-ultralytics
+torch
+torchvision
+numpy
+pillow
+pyyaml
+requests
+scipy
+psutil
+matplotlib
+ultralytics --no-deps
