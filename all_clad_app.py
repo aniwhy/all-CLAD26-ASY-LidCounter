@@ -142,7 +142,7 @@ with col2:
 with col1:
     st.subheader("Live Camera Feed")
 
-    if mode == "📱 Live Camera (WebRTC)":
+    if mode == "Live Camera (WebRTC)":
         ctx = webrtc_streamer(
             key="lid-detector",
             video_processor_factory=LidDetector,
@@ -158,7 +158,7 @@ with col1:
         # Demo video mode using OpenCV loop
         frame_window = st.empty()
         if 'demo_cap' not in st.session_state:
-            st.session_state.demo_cap = cv2.VideoCapture("test_video.mp4")
+            st.session_state.demo_cap = cv2.VideoCapture("demo_video.mp4")
         cap = st.session_state.demo_cap
 
         stop_btn = st.button("⏹ Stop Demo")
