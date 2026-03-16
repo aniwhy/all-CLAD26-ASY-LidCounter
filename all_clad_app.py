@@ -59,7 +59,7 @@ if 'cap' not in st.session_state:
     cap = cv2.VideoCapture(PHONE_IP_URL)
     if not cap.isOpened():
         # Fallback to demo video if phone isn't connected
-        cap = cv2.VideoCapture("demo_production.mp4")
+        cap = cv2.VideoCapture("test_video.mp4")
     st.session_state.cap = cap
 
 cap = st.session_state.cap
