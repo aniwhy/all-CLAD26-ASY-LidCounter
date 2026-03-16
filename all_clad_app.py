@@ -32,57 +32,6 @@ def get_model():
 
 model = get_model()
 
-# --- CACHED DETECTOR STATE ---
-# This survives reruns unlike session_state for the WebRTC processor
-@st.cache_resource
-def get_detector_state():
-    return {
-        "lock": threading.Lock(),
-        "lid_memory": [],
-        "last_stable_count": -1,
-        "hand_touching_active": False,
-        "prev_hand_contact": False,
-        "count_before_grab": 0,
-        "post_grab_confirm": 0,
-        "calibrated": False,
-        "total_inv": 0,
-        "log_data": [],
-    }
-
-detector_state = get_detector_state()
-
-# Reset cached state if button pressed
-if reset_btn:
-    with detector_state["lock"]:
-        detector_state.update({
-            "lid_memory": [],
-            "last_stable_count": -1,
-            "hand_touching_active": False,
-            "prev_hand_contact": False,
-            "count_before_grab": 0,
-            "post_grab_confirm": 0,
-            "calibrated": False,
-            "total_inv": 0,
-            "log_data": [],
-        })
-
-# --- SESSION STATE for demo mode ---
-demo_defaults = {
-    'total_inv': 0,
-    'log_data': [],
-    'calibrated': False,
-    'demo_running': False,
-    'lid_memory': [],
-    'last_stable_count': -1,
-    'hand_touching_active': False,
-    'prev_hand_contact': False,
-    'count_before_grab': 0,
-    'post_grab_confirm': 0,
-}
-for k, v in demo_defaults.items():
-    if k not in st.session_state or reset_btn:
-        st.session_state[k] = v
-
 BUFFER_SIZE = 15
 
 RTC_CONFIG = RTCConfiguration({
@@ -93,75 +42,89 @@ RTC_CONFIG = RTCConfiguration({
 })
 
 
-def run_logic(current_visible, hand_contact, state):
-    """Works with either detector_state dict or st.session_state."""
-
+def run_logic(current_visible, hand_contact, s):
     if not hand_contact:
-        state["lid_memory"].append(current_visible)
-        if len(state["lid_memory"]) > BUFFER_SIZE:
-            state["lid_memory"].pop(0)
+        s["lid_memory"].append(current_visible)
+        if len(s["lid_memory"]) > BUFFER_SIZE:
+            s["lid_memory"].pop(0)
 
-    if not state["lid_memory"]:
+    if not s["lid_memory"]:
         return
 
-    stable_count = max(set(state["lid_memory"]), key=state["lid_memory"].count)
+    stable_count = max(set(s["lid_memory"]), key=s["lid_memory"].count)
 
-    if not state["calibrated"] and len(state["lid_memory"]) == BUFFER_SIZE:
-        state["total_inv"] = stable_count
-        state["last_stable_count"] = stable_count
-        state["calibrated"] = True
-        state["log_data"].insert(0, f"{time.strftime('%H:%M:%S')} - Calibrated ({stable_count} lids)")
+    if not s["calibrated"] and len(s["lid_memory"]) == BUFFER_SIZE:
+        s["total_inv"] = stable_count
+        s["last_stable_count"] = stable_count
+        s["calibrated"] = True
+        s["log"].insert(0, f"{time.strftime('%H:%M:%S')} - Calibrated ({stable_count} lids)")
         return
 
-    if not state["calibrated"]:
+    if not s["calibrated"]:
         return
 
-    # Stack added
     if (not hand_contact
-            and stable_count > state["last_stable_count"]
-            and state["last_stable_count"] == 0):
-        state["total_inv"] += stable_count
-        state["log_data"].insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+{stable_count})")
-        state["last_stable_count"] = stable_count
+            and stable_count > s["last_stable_count"]
+            and s["last_stable_count"] == 0):
+        s["total_inv"] += stable_count
+        s["log"].insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+{stable_count})")
+        s["last_stable_count"] = stable_count
 
-    # Hand just touched
-    if hand_contact and not state["prev_hand_contact"]:
-        state["hand_touching_active"] = True
-        state["count_before_grab"] = state["last_stable_count"]
-        state["post_grab_confirm"] = 0
+    if hand_contact and not s["prev_hand"]:
+        s["touching"] = True
+        s["grab_count"] = s["last_stable_count"]
+        s["confirm"] = 0
 
-    # Hand just left
-    if not hand_contact and state["prev_hand_contact"] and state["hand_touching_active"]:
-        state["post_grab_confirm"] = 0
+    if not hand_contact and s["prev_hand"] and s["touching"]:
+        s["confirm"] = 0
 
-    # Confirmation window
-    if not hand_contact and state["hand_touching_active"]:
-        if current_visible < state["count_before_grab"]:
-            state["post_grab_confirm"] += 1
+    if not hand_contact and s["touching"]:
+        if current_visible < s["grab_count"]:
+            s["confirm"] += 1
         else:
-            state["post_grab_confirm"] = 0
-            state["hand_touching_active"] = False
+            s["confirm"] = 0
+            s["touching"] = False
 
-        if state["post_grab_confirm"] >= 8:
-            removed = state["count_before_grab"] - current_visible
+        if s["confirm"] >= 8:
+            removed = s["grab_count"] - current_visible
             if removed > 0:
-                state["total_inv"] -= removed
-                state["log_data"].insert(0, f"{time.strftime('%H:%M:%S')} - Removed (-{removed})")
-                state["last_stable_count"] = current_visible
-                state["log_data"] = state["log_data"][:20]
-            state["hand_touching_active"] = False
-            state["post_grab_confirm"] = 0
+                s["total_inv"] -= removed
+                s["log"].insert(0, f"{time.strftime('%H:%M:%S')} - Removed (-{removed})")
+                s["last_stable_count"] = current_visible
+                s["log"] = s["log"][:20]
+            s["touching"] = False
+            s["confirm"] = 0
 
-    state["prev_hand_contact"] = hand_contact
+    s["prev_hand"] = hand_contact
 
-    if not hand_contact and not state["hand_touching_active"]:
-        state["last_stable_count"] = stable_count
+    if not hand_contact and not s["touching"]:
+        s["last_stable_count"] = stable_count
+
+
+def make_state():
+    return {
+        "lid_memory": [],
+        "last_stable_count": -1,
+        "touching": False,
+        "prev_hand": False,
+        "grab_count": 0,
+        "confirm": 0,
+        "calibrated": False,
+        "total_inv": 0,
+        "log": [],
+    }
 
 
 # --- VIDEO PROCESSOR ---
 class LidDetector(VideoProcessorBase):
     def __init__(self):
         self.conf = 0.5
+        self.lock = threading.Lock()
+        self.s = make_state()
+
+    def reset(self):
+        with self.lock:
+            self.s = make_state()
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
@@ -188,14 +151,26 @@ class LidDetector(VideoProcessorBase):
             for h in hands for l in lids
         )
 
-        with detector_state["lock"]:
-            run_logic(current_visible, hand_contact, detector_state)
+        with self.lock:
+            run_logic(current_visible, hand_contact, self.s)
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+    def get_display(self):
+        with self.lock:
+            return self.s["total_inv"], list(self.s["log"]), self.s["calibrated"]
 
 
 # --- LAYOUT ---
 col1, col2 = st.columns([2, 1])
+
+# Placeholders so we can update metrics without rerunning the whole page
+with col2:
+    st.subheader("Real-Time Metrics")
+    metric_placeholder = st.empty()
+    cal_placeholder = st.empty()
+    st.subheader("Event History")
+    log_placeholder = st.empty()
 
 with col1:
     st.subheader("Live Camera Feed")
@@ -204,7 +179,6 @@ with col1:
         if 'demo_cap' in st.session_state:
             st.session_state.demo_cap.release()
             del st.session_state.demo_cap
-        st.session_state.demo_running = False
 
         ctx = webrtc_streamer(
             key="lid-detector",
@@ -215,76 +189,81 @@ with col1:
 
         if ctx.video_processor:
             ctx.video_processor.conf = conf_threshold
+            if reset_btn:
+                ctx.video_processor.reset()
 
-        status = "ACTIVE" if (ctx and ctx.state.playing) else "IDLE"
-        st.write(f"Camera: {status} | Calibrated: {detector_state['calibrated']}")
-        time.sleep(0.3)
-        st.rerun()
+            # Poll loop — updates placeholders without full page rerun
+            while True:
+                total_inv, log, calibrated = ctx.video_processor.get_display()
+                metric_placeholder.metric("Current Inventory", f"{total_inv} Units")
+                cal_placeholder.write(f"Calibrated: {calibrated}")
+                log_placeholder.text("\n".join(log[:8]))
+                time.sleep(0.3)
+        else:
+            metric_placeholder.metric("Current Inventory", "-- Units")
+            cal_placeholder.write("Waiting for camera...")
 
     else:
-        frame_window = st.empty()
+        # Demo mode
+        s = make_state()
+        if reset_btn:
+            s = make_state()
 
-        if 'demo_cap' not in st.session_state:
+        frame_window = st.empty()
+        status_placeholder = st.empty()
+
+        if 'demo_cap' not in st.session_state or reset_btn:
+            if 'demo_cap' in st.session_state:
+                st.session_state.demo_cap.release()
             st.session_state.demo_cap = cv2.VideoCapture("demo_video.mp4")
-            st.session_state.demo_running = True
 
         col_start, col_stop = st.columns(2)
         with col_start:
-            if st.button("▶ Start Demo"):
-                st.session_state.demo_running = True
+            start = st.button("▶ Start Demo")
         with col_stop:
-            if st.button("⏹ Stop Demo"):
-                st.session_state.demo_running = False
+            stop = st.button("⏹ Stop Demo")
 
-        if st.session_state.demo_running:
+        if start:
+            st.session_state.demo_running = True
+        if stop:
+            st.session_state.demo_running = False
+
+        if st.session_state.get('demo_running', False):
             cap = st.session_state.demo_cap
-            ret, frame = cap.read()
-            if not ret:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            while True:
                 ret, frame = cap.read()
+                if not ret:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    ret, frame = cap.read()
 
-            if ret:
-                results = model(frame, conf=conf_threshold, imgsz=640, verbose=False)
-                hands, lids = [], []
-                for r in results:
-                    for box in r.boxes:
-                        coords = box.xyxy[0].tolist()
-                        label = model.names[int(box.cls[0])]
-                        if label == 'hand':
-                            hands.append(coords)
-                        else:
-                            lids.append(coords)
-                        x1, y1, x2, y2 = map(int, coords)
-                        color = (255, 191, 0) if label == 'hand' else (0, 255, 127)
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                        cv2.putText(frame, label, (x1, y1 - 5),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+                if ret:
+                    results = model(frame, conf=conf_threshold, imgsz=640, verbose=False)
+                    hands, lids = [], []
+                    for r in results:
+                        for box in r.boxes:
+                            coords = box.xyxy[0].tolist()
+                            label = model.names[int(box.cls[0])]
+                            if label == 'hand':
+                                hands.append(coords)
+                            else:
+                                lids.append(coords)
+                            x1, y1, x2, y2 = map(int, coords)
+                            color = (255, 191, 0) if label == 'hand' else (0, 255, 127)
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                            cv2.putText(frame, label, (x1, y1 - 5),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-                hand_contact = any(
-                    not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
-                    for h in hands for l in lids
-                )
-                run_logic(len(lids), hand_contact, st.session_state)
-                frame_window.image(frame, channels="BGR", width='stretch')
-                time.sleep(0.1)
-                st.rerun()
+                    hand_contact = any(
+                        not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
+                        for h in hands for l in lids
+                    )
+                    run_logic(len(lids), hand_contact, s)
+
+                    frame_window.image(frame, channels="BGR", width='stretch')
+                    metric_placeholder.metric("Current Inventory", f"{s['total_inv']} Units")
+                    cal_placeholder.write(f"Calibrated: {s['calibrated']}")
+                    log_placeholder.text("\n".join(s['log'][:8]))
+                    time.sleep(0.05)
         else:
-            st.info("Press ▶ Start Demo to begin.")
-
-with col2:
-    st.subheader("Real-Time Metrics")
-    # Show from the right source depending on mode
-    if mode == "Live Camera (WebRTC)":
-        with detector_state["lock"]:
-            display_inv = detector_state["total_inv"]
-            display_log = list(detector_state["log_data"])
-            display_cal = detector_state["calibrated"]
-    else:
-        display_inv = st.session_state.total_inv
-        display_log = st.session_state.log_data
-        display_cal = st.session_state.calibrated
-
-    st.metric("Current Inventory", f"{display_inv} Units")
-    st.write(f"Calibrated: {display_cal}")
-    st.subheader("Event History")
-    st.text("\n".join(display_log[:8]))
+            metric_placeholder.metric("Current Inventory", "-- Units")
+            cal_placeholder.write("Press ▶ Start Demo to begin.")
