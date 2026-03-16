@@ -4,6 +4,7 @@ import cv2
 from ultralytics import YOLO
 import time
 import av
+import threading
 
 st.set_page_config(page_title="All-Clad Lid Inventory", layout="wide")
 
@@ -14,7 +15,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("All-Clad Lid Inventory Tracking")
+st.title("All-CLAD \nLid Inventory Tracking")
 st.write("Lid Count Tracking | Anirudh Yuvaraj")
 
 # --- SIDEBAR ---
@@ -28,11 +29,12 @@ mode = st.sidebar.radio("Input Mode", ["Live Camera (WebRTC)", "Demo Video"])
 defaults = {
     'total_inv': 0,
     'log_data': [],
+    'calibrated': False,
+    'demo_running': False,
+    # demo mode logic state
     'lid_memory': [],
     'last_stable_count': -1,
     'hand_touching_active': False,
-    'calibrated': False,
-    'demo_running': False,
     'prev_hand_contact': False,
     'count_before_grab': 0,
     'post_grab_confirm': 0,
@@ -58,10 +60,24 @@ RTC_CONFIG = RTCConfiguration({
 })
 
 # --- VIDEO PROCESSOR ---
+# All logic lives here so it runs at full camera framerate
 class LidDetector(VideoProcessorBase):
     def __init__(self):
         self.conf = 0.5
-        self.result = {"current_visible": 0, "hand_contact": False}
+        self.lock = threading.Lock()
+
+        # Internal state — runs at full fps, independent of Streamlit reruns
+        self.lid_memory = []
+        self.last_stable_count = -1
+        self.hand_touching_active = False
+        self.prev_hand_contact = False
+        self.count_before_grab = 0
+        self.post_grab_confirm = 0
+        self.calibrated = False
+
+        # Output for display — written by recv, read by main thread
+        self.total_inv = 0
+        self.log_data = []
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
@@ -82,19 +98,90 @@ class LidDetector(VideoProcessorBase):
                 cv2.putText(img, label, (x1, y1 - 5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
+        current_visible = len(lids)
         hand_contact = any(
             not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
             for h in hands for l in lids
         )
-        self.result = {"current_visible": len(lids), "hand_contact": hand_contact}
+
+        with self.lock:
+            self._run_logic(current_visible, hand_contact)
+
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
+    def _run_logic(self, current_visible, hand_contact):
+        # Only update memory when hand not in frame
+        if not hand_contact:
+            self.lid_memory.append(current_visible)
+            if len(self.lid_memory) > BUFFER_SIZE:
+                self.lid_memory.pop(0)
 
-def run_logic(current_visible, hand_contact):
+        if not self.lid_memory:
+            return
+
+        stable_count = max(set(self.lid_memory), key=self.lid_memory.count)
+
+        # Calibrate
+        if not self.calibrated and len(self.lid_memory) == BUFFER_SIZE:
+            self.total_inv = stable_count
+            self.last_stable_count = stable_count
+            self.calibrated = True
+            self.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Calibrated ({stable_count} lids)")
+            return
+
+        if not self.calibrated:
+            return
+
+        # Stack added
+        if not hand_contact and stable_count > self.last_stable_count and self.last_stable_count == 0:
+            self.total_inv += stable_count
+            self.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+{stable_count})")
+            self.last_stable_count = stable_count
+
+        # Hand just touched — snapshot count
+        if hand_contact and not self.prev_hand_contact:
+            self.hand_touching_active = True
+            self.count_before_grab = self.last_stable_count
+            self.post_grab_confirm = 0
+
+        # Hand just left — start confirmation
+        if not hand_contact and self.prev_hand_contact and self.hand_touching_active:
+            self.post_grab_confirm = 0
+
+        # Confirmation window
+        if not hand_contact and self.hand_touching_active:
+            if current_visible < self.count_before_grab:
+                self.post_grab_confirm += 1
+            else:
+                # Count recovered — false alarm
+                self.post_grab_confirm = 0
+                self.hand_touching_active = False
+
+            if self.post_grab_confirm >= 8:
+                removed = self.count_before_grab - current_visible
+                if removed > 0:
+                    self.total_inv -= removed
+                    self.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Removed (-{removed})")
+                    self.last_stable_count = current_visible
+                    # trim log
+                    self.log_data = self.log_data[:20]
+                self.hand_touching_active = False
+                self.post_grab_confirm = 0
+
+        self.prev_hand_contact = hand_contact
+
+        if not hand_contact and not self.hand_touching_active:
+            self.last_stable_count = stable_count
+
+    def get_display(self):
+        with self.lock:
+            return self.total_inv, list(self.log_data), self.calibrated
+
+
+def run_logic_demo(current_visible, hand_contact):
+    """Logic for demo video mode — runs on main thread via st.rerun."""
     ss = st.session_state
 
-    # Only update lid memory when hand is not in frame
-    # so camera wobble during a grab doesn't corrupt the buffer
     if not hand_contact:
         ss.lid_memory.append(current_visible)
         if len(ss.lid_memory) > BUFFER_SIZE:
@@ -105,7 +192,6 @@ def run_logic(current_visible, hand_contact):
 
     stable_count = max(set(ss.lid_memory), key=ss.lid_memory.count)
 
-    # Calibrate once buffer is full
     if not ss.calibrated and len(ss.lid_memory) == BUFFER_SIZE:
         ss.total_inv = stable_count
         ss.last_stable_count = stable_count
@@ -116,57 +202,43 @@ def run_logic(current_visible, hand_contact):
     if not ss.calibrated:
         return
 
-    # Stack added: only trigger when hand free and count rises from 0
     if not hand_contact and stable_count > ss.last_stable_count and ss.last_stable_count == 0:
         ss.total_inv += stable_count
         ss.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+{stable_count})")
         ss.last_stable_count = stable_count
 
-    # Hand just touched — snapshot the stable count before anything moves
     if hand_contact and not ss.prev_hand_contact:
         ss.hand_touching_active = True
         ss.count_before_grab = ss.last_stable_count
         ss.post_grab_confirm = 0
 
-    # Hand just left — start confirmation window
     if not hand_contact and ss.prev_hand_contact and ss.hand_touching_active:
         ss.post_grab_confirm = 0
 
-    # Confirmation window: count consecutive frames where lid count stays lower
     if not hand_contact and ss.hand_touching_active:
         if current_visible < ss.count_before_grab:
             ss.post_grab_confirm += 1
         else:
-            # Count recovered — false alarm (camera moved, lid put back, etc.)
             ss.post_grab_confirm = 0
             ss.hand_touching_active = False
 
-        # Only subtract after 5 consistent frames confirming lid is gone
-        if ss.post_grab_confirm >= 5:
+        if ss.post_grab_confirm >= 8:
             removed = ss.count_before_grab - current_visible
             if removed > 0:
                 ss.total_inv -= removed
-                ss.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Unit Removed (-{removed})")
+                ss.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Removed (-{removed})")
                 ss.last_stable_count = current_visible
             ss.hand_touching_active = False
             ss.post_grab_confirm = 0
 
     ss.prev_hand_contact = hand_contact
 
-    # Update baseline only when hand is completely clear
     if not hand_contact and not ss.hand_touching_active:
         ss.last_stable_count = stable_count
 
 
 # --- LAYOUT ---
 col1, col2 = st.columns([2, 1])
-
-with col2:
-    st.subheader("Real-Time Metrics")
-    st.metric("Current Inventory", f"{st.session_state.total_inv} Units")
-    st.write(f"Calibrated: {st.session_state.calibrated}")
-    st.subheader("Event History")
-    st.text("\n".join(st.session_state.log_data[:8]))
 
 with col1:
     st.subheader("Live Camera Feed")
@@ -186,11 +258,14 @@ with col1:
 
         if ctx.video_processor:
             ctx.video_processor.conf = conf_threshold
-            r = ctx.video_processor.result
-            run_logic(r["current_visible"], r["hand_contact"])
+            total_inv, log_data, calibrated = ctx.video_processor.get_display()
+            # Push to session state so col2 can read it
+            st.session_state.total_inv = total_inv
+            st.session_state.log_data = log_data
+            st.session_state.calibrated = calibrated
             status = "ACTIVE" if ctx.state.playing else "IDLE"
-            st.write(f"Camera: {status}")
-            time.sleep(0.2)
+            st.write(f"Camera: {status} | Calibrated: {calibrated}")
+            time.sleep(0.3)
             st.rerun()
 
     else:
@@ -236,9 +311,16 @@ with col1:
                     not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
                     for h in hands for l in lids
                 )
-                run_logic(len(lids), hand_contact)
+                run_logic_demo(len(lids), hand_contact)
                 frame_window.image(frame, channels="BGR", width='stretch')
                 time.sleep(0.05)
                 st.rerun()
         else:
             st.info("Press ▶ Start Demo to begin.")
+
+with col2:
+    st.subheader("Real-Time Metrics")
+    st.metric("Current Inventory", f"{st.session_state.total_inv} Units")
+    st.write(f"Calibrated: {st.session_state.calibrated}")
+    st.subheader("Event History")
+    st.text("\n".join(st.session_state.log_data[:8]))
