@@ -1,4 +1,8 @@
 import streamlit as st
+import subprocess
+import sys
+subprocess.run([sys.executable, "-m", "pip", "uninstall", "opencv-python", "-y"], 
+               capture_output=True)
 import cv2
 from ultralytics import YOLO
 import time
