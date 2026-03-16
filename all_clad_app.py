@@ -14,23 +14,28 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
-    /* Apply Inter to everything including WebRTC buttons */
+    html, body, [class*="css"], [data-testid],
     *, *::before, *::after,
-    button, input, select, textarea,
-    [class*="css"], [data-testid],
-    .stButton > button,
-    video, .webrtc-streamer { 
-        font-family: 'Inter', sans-serif !important; 
+    button, input, select, textarea, p, span, div, a, label {
+        font-family: 'Inter', sans-serif !important;
     }
 
-    .main { background-color: #0a0e14; }
-    [data-testid="stAppViewContainer"] { background-color: #0a0e14; }
-    [data-testid="stSidebar"] { 
-        background-color: #0d1117; 
-        border-right: 1px solid #1e2229; 
+    .main, [data-testid="stAppViewContainer"] {
+        background-color: #111318;
     }
-    h1, h2, h3, p, label, .stMarkdown, 
-    [data-testid="stText"] { color: #e6edf3 !important; }
+    [data-testid="stSidebar"] {
+        background-color: #0d0f13;
+        border-right: 1px solid #252830;
+    }
+
+    /* Make all text readable */
+    p, span, div, label, .stMarkdown,
+    [data-testid="stText"],
+    [data-testid="stMarkdownContainer"] p {
+        color: #d4cfc8 !important;
+    }
+
+    h1, h2, h3 { color: #f0ebe3 !important; }
 
     /* Animations */
     @keyframes pulse-red {
@@ -39,7 +44,7 @@ st.markdown("""
         100% { box-shadow: 0 0 0 0 rgba(196,18,48,0); }
     }
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(6px); }
+        from { opacity: 0; transform: translateY(5px); }
         to   { opacity: 1; transform: translateY(0); }
     }
     @keyframes shimmer-red {
@@ -53,12 +58,12 @@ st.markdown("""
 
     /* Metric card */
     .metric-card {
-        background: linear-gradient(135deg, #12161c 0%, #161b22 100%);
-        border: 1px solid #1e2229;
+        background: #16191f;
+        border: 1px solid #252830;
         border-radius: 10px;
-        padding: 20px 24px;
+        padding: 22px 24px;
         margin-bottom: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         animation: fadeInUp 0.3s ease;
         position: relative;
         overflow: hidden;
@@ -73,54 +78,55 @@ st.markdown("""
         animation: shimmer-red 4s linear infinite;
     }
     .metric-label {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: #4b5563 !important;
-        margin-bottom: 8px;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        letter-spacing: 2px !important;
+        text-transform: uppercase !important;
+        color: #8a8278 !important;
+        margin-bottom: 10px !important;
     }
     .metric-value {
-        font-size: 52px;
-        font-weight: 700;
-        color: #f0f6fc !important;
-        line-height: 1;
+        font-size: 58px !important;
+        font-weight: 700 !important;
+        color: #f0ebe3 !important;
+        line-height: 1 !important;
         font-family: 'JetBrains Mono', monospace !important;
     }
     .metric-sub {
-        font-size: 11px;
-        color: #2d3340;
-        margin-top: 6px;
-        letter-spacing: 1px;
+        font-size: 11px !important;
+        color: #3d4048 !important;
+        margin-top: 6px !important;
+        letter-spacing: 1px !important;
     }
 
     /* Badges */
     .badge {
         display: inline-block;
-        padding: 3px 10px;
+        padding: 4px 11px;
         border-radius: 20px;
         font-size: 10px;
         font-weight: 700;
         letter-spacing: 1px;
         text-transform: uppercase;
-        margin-top: 10px;
-        margin-right: 4px;
+        margin-top: 12px;
+        margin-right: 5px;
+        font-family: 'Inter', sans-serif !important;
     }
     .badge-active {
         background: rgba(196,18,48,0.12);
         color: #e8394f;
-        border: 1px solid rgba(196,18,48,0.3);
+        border: 1px solid rgba(196,18,48,0.35);
         animation: pulse-red 2s infinite;
     }
     .badge-idle {
-        background: rgba(100,110,120,0.1);
-        color: #6b7280;
-        border: 1px solid rgba(100,110,120,0.2);
+        background: rgba(212,207,200,0.06);
+        color: #6b6560;
+        border: 1px solid rgba(212,207,200,0.12);
     }
     .badge-calibrated {
-        background: rgba(160,160,160,0.08);
-        color: #9ca3af;
-        border: 1px solid rgba(160,160,160,0.15);
+        background: rgba(210,190,150,0.08);
+        color: #c8b89a;
+        border: 1px solid rgba(210,190,150,0.2);
     }
     .badge-waiting {
         background: rgba(196,18,48,0.08);
@@ -131,101 +137,154 @@ st.markdown("""
 
     /* Log card */
     .log-card {
-        background: #0d1117;
-        border: 1px solid #1e2229;
+        background: #0d0f13;
+        border: 1px solid #252830;
         border-radius: 8px;
         padding: 14px 16px;
         font-family: 'JetBrains Mono', monospace !important;
-        font-size: 11px;
-        color: #6b7280;
+        font-size: 11px !important;
+        color: #6b6560;
         min-height: 200px;
-        line-height: 2;
+        line-height: 2.2;
     }
-    .log-entry-remove { color: #e8394f; }
-    .log-entry-add    { color: #9ca3af; }
-    .log-entry-cal    { color: #4b5563; }
+    .log-entry-remove {
+        color: #e8394f !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+    .log-entry-add {
+        color: #c8b89a !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+    .log-entry-cal {
+        color: #4a4d55 !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
 
     /* Section headers */
     .section-header {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        letter-spacing: 2.5px !important;
+        text-transform: uppercase !important;
         color: #c41230 !important;
-        border-bottom: 1px solid #1e2229;
-        padding-bottom: 8px;
-        margin-bottom: 16px;
+        border-bottom: 1px solid #252830 !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 16px !important;
     }
 
-    /* All buttons including WebRTC */
-    button, .stButton > button,
+    /* ALL buttons — very aggressive override */
+    button,
+    .stButton > button,
+    [kind="primary"], [kind="secondary"],
+    [data-testid="baseButton-primary"],
     [data-testid="baseButton-secondary"],
-    [data-testid="baseButton-primary"] {
+    [data-baseweb="button"] {
         font-family: 'Inter', sans-serif !important;
-        background-color: #12161c !important;
-        color: #9ca3af !important;
-        border: 1px solid #1e2229 !important;
+        background-color: #16191f !important;
+        color: #c8b89a !important;
+        border: 1px solid #252830 !important;
         border-radius: 6px !important;
         font-size: 12px !important;
         font-weight: 500 !important;
+        letter-spacing: 0.3px !important;
         transition: all 0.2s !important;
+        padding: 8px 16px !important;
     }
-    button:hover, .stButton > button:hover,
+    button:hover,
+    .stButton > button:hover,
+    [data-testid="baseButton-primary"]:hover,
     [data-testid="baseButton-secondary"]:hover,
-    [data-testid="baseButton-primary"]:hover {
+    [data-baseweb="button"]:hover {
         border-color: #c41230 !important;
         color: #e8394f !important;
-        background-color: #1a1020 !important;
+        background-color: #1c1218 !important;
+        box-shadow: 0 0 10px rgba(196,18,48,0.15) !important;
     }
 
     /* Slider */
-    .stSlider > div > div > div > div { 
-        background-color: #c41230 !important; 
+    .stSlider > div > div > div > div {
+        background-color: #c41230 !important;
+    }
+    .stSlider [data-testid="stThumbValue"] {
+        color: #c8b89a !important;
+    }
+
+    /* Slider label */
+    .stSlider label {
+        color: #8a8278 !important;
+        font-size: 12px !important;
     }
 
     /* Radio */
-    .stRadio label { 
-        font-size: 12px !important; 
-        color: #9ca3af !important;
-        font-family: 'Inter', sans-serif !important;
+    .stRadio > label {
+        color: #8a8278 !important;
+        font-size: 11px !important;
+        letter-spacing: 0.5px !important;
+    }
+    .stRadio [data-testid="stMarkdownContainer"] p {
+        color: #d4cfc8 !important;
+        font-size: 13px !important;
     }
 
     /* File uploader */
     [data-testid="stFileUploader"] {
-        background: #0d1117;
-        border: 1px dashed #1e2229;
-        border-radius: 8px;
+        background: #0d0f13 !important;
+        border: 1px dashed #252830 !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stFileUploader"] span,
+    [data-testid="stFileUploader"] p {
+        color: #6b6560 !important;
+        font-size: 12px !important;
     }
 
-    /* Hide default metric widget */
+    /* Hide default metric */
     [data-testid="stMetric"] { display: none; }
+
+    /* Sidebar text */
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] div {
+        color: #8a8278 !important;
+        font-size: 12px !important;
+    }
 
     /* Footer */
     .footer {
         margin-top: 48px;
-        padding: 20px 0 8px 0;
-        border-top: 1px solid #1e2229;
+        padding: 18px 0 8px 0;
+        border-top: 1px solid #252830;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
         gap: 10px;
     }
-    .footer-left { font-size: 12px; color: #4b5563; }
-    .footer-left strong { color: #9ca3af; }
-    .footer-right { 
-        font-size: 10px; 
-        color: #2d3340; 
-        letter-spacing: 2px; 
-        text-transform: uppercase; 
+    .footer-left {
+        font-size: 12px;
+        color: #4a4d55;
+        font-family: 'Inter', sans-serif !important;
     }
-    .footer a { color: #c41230 !important; text-decoration: none; }
+    .footer-left strong { color: #8a8278; font-weight: 600; }
+    .footer-right {
+        font-size: 10px;
+        color: #2d3038;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-family: 'Inter', sans-serif !important;
+    }
+    .footer a {
+        color: #c41230 !important;
+        text-decoration: none;
+        font-family: 'Inter', sans-serif !important;
+    }
     .footer a:hover { color: #e8394f !important; }
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #0d1117; }
-    ::-webkit-scrollbar-thumb { background: #1e2229; border-radius: 2px; }
+    ::-webkit-scrollbar-track { background: #0d0f13; }
+    ::-webkit-scrollbar-thumb { background: #252830; border-radius: 2px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -236,12 +295,14 @@ with col_logo:
     st.image("logo.png", width=68)
 with col_title:
     st.markdown("""
-        <div style='padding-top:8px'>
-            <div style='font-size:20px;font-weight:700;color:#f0f6fc;letter-spacing:1px'>
+        <div style='padding-top:10px'>
+            <div style='font-size:22px;font-weight:700;color:#f0ebe3;
+                        letter-spacing:0.5px;font-family:Inter,sans-serif'>
                 All-Clad Lid Inventory
             </div>
-            <div style='font-size:11px;color:#2d3340;letter-spacing:2px;
-                        text-transform:uppercase;margin-top:3px'>
+            <div style='font-size:11px;color:#3d4048;letter-spacing:2px;
+                        text-transform:uppercase;margin-top:4px;
+                        font-family:Inter,sans-serif'>
                 Computer Vision Tracking &nbsp;·&nbsp; Production Line 1
             </div>
         </div>
@@ -249,20 +310,26 @@ with col_title:
 
 st.markdown(
     "<div style='height:1px;background:linear-gradient(90deg,transparent,#c41230,transparent);"
-    "margin:14px 0 20px 0'></div>",
+    "margin:14px 0 22px 0'></div>",
     unsafe_allow_html=True
 )
 
 # ── Sidebar ───────────────────────────────────────────────
-st.sidebar.markdown("<div class='section-header'>System Control</div>", unsafe_allow_html=True)
+st.sidebar.markdown(
+    "<div class='section-header'>System Control</div>",
+    unsafe_allow_html=True
+)
 conf_threshold = st.sidebar.slider("Detection Confidence", 0.3, 0.9, 0.5)
 reset_btn = st.sidebar.button("⟳  Hard Reset")
 mode = st.sidebar.radio("Input Mode", ["Live Camera (WebRTC)", "Demo Video", "Upload Video"])
-st.sidebar.markdown("<div style='height:1px;background:#1e2229;margin:16px 0'></div>",
-                    unsafe_allow_html=True)
+st.sidebar.markdown(
+    "<div style='height:1px;background:#252830;margin:16px 0'></div>",
+    unsafe_allow_html=True
+)
 st.sidebar.markdown("""
-    <div style='font-size:10px;color:#2d3340;letter-spacing:1px;
-                text-transform:uppercase;line-height:2.2'>
+    <div style='font-size:10px;color:#3d4048;letter-spacing:1px;
+                text-transform:uppercase;line-height:2.4;
+                font-family:Inter,sans-serif'>
         Model · lidDetection.pt<br>
         Buffer · 15 frames<br>
         Confirm · 8 frames
@@ -290,38 +357,19 @@ RTC_CONFIG = RTCConfiguration({
 
 def make_state():
     return {
-        # detection buffer — only filled when hand not in frame
         "lid_memory": [],
-        # the last confirmed stable lid count (baseline)
         "baseline": 0,
-        # whether we have calibrated at all yet
         "calibrated": False,
-        # hand state
         "hand_was_present": False,
         "hand_is_present": False,
-        # snapshot of baseline when hand first touched
         "count_at_touch": 0,
-        # consecutive frames confirming lower count after hand left
         "confirm_frames": 0,
-        # inventory
         "total_inv": 0,
         "log": [],
     }
 
 
 def run_logic(current_visible, hand_contact, s):
-    """
-    Core counting logic.
-    - Only updates the lid memory buffer when no hand is present
-      so occlusion doesn't corrupt the baseline.
-    - Calibrates once the buffer is full.
-    - On hand-touch: snapshots the current baseline.
-    - After hand leaves: waits CONFIRM_THRESHOLD consecutive frames
-      where the count stays below the snapshot, then subtracts.
-    - On stack appearing (count rises from 0): adds to inventory.
-    """
-
-    # ── Update buffer (hand-free frames only) ──
     if not hand_contact:
         s["lid_memory"].append(current_visible)
         if len(s["lid_memory"]) > BUFFER_SIZE:
@@ -330,42 +378,38 @@ def run_logic(current_visible, hand_contact, s):
     if not s["lid_memory"]:
         return
 
-    # Most common value in buffer = stable count
     stable = max(set(s["lid_memory"]), key=s["lid_memory"].count)
 
-    # ── Calibration ──
     if not s["calibrated"]:
         if len(s["lid_memory"]) == BUFFER_SIZE:
             s["baseline"] = stable
             s["total_inv"] = stable
             s["calibrated"] = True
             s["log"].insert(0, f"{time.strftime('%H:%M:%S')}  Calibrated — {stable} lids")
-        return  # don't run event logic until calibrated
+        return
 
-    # ── Stack added (tote refilled from empty) ──
+    # Stack added
     if not hand_contact and stable > s["baseline"] and s["baseline"] == 0:
-        added = stable
-        s["total_inv"] += added
+        s["total_inv"] += stable
         s["baseline"] = stable
-        s["log"].insert(0, f"{time.strftime('%H:%M:%S')}  Stack Added (+{added})")
+        s["log"].insert(0, f"{time.strftime('%H:%M:%S')}  Stack Added (+{stable})")
         s["log"] = s["log"][:20]
 
-    # ── Hand just touched ──
+    # Hand just touched
     if hand_contact and not s["hand_was_present"]:
         s["hand_is_present"] = True
-        s["count_at_touch"] = s["baseline"]  # snapshot before anything moves
+        s["count_at_touch"] = s["baseline"]
         s["confirm_frames"] = 0
 
-    # ── Hand just left ──
+    # Hand just left
     if not hand_contact and s["hand_was_present"]:
-        s["confirm_frames"] = 0  # start fresh confirmation window
+        s["confirm_frames"] = 0
 
-    # ── Confirmation window: count stays lower after hand left ──
+    # Confirmation window
     if not hand_contact and s["hand_is_present"]:
         if current_visible < s["count_at_touch"]:
             s["confirm_frames"] += 1
         else:
-            # Count recovered — false alarm (camera moved, lid put back, etc.)
             s["confirm_frames"] = 0
             s["hand_is_present"] = False
 
@@ -379,7 +423,6 @@ def run_logic(current_visible, hand_contact, s):
             s["hand_is_present"] = False
             s["confirm_frames"] = 0
 
-    # ── Update baseline when hand is clear and count is stable ──
     if not hand_contact and not s["hand_is_present"]:
         s["baseline"] = stable
 
@@ -413,7 +456,9 @@ def render_log(log):
     if not log:
         log_placeholder.markdown("""
             <div class='log-card'>
-                <span style='color:#1e2229'>— awaiting events —</span>
+                <span style='color:#252830;font-family:JetBrains Mono,monospace'>
+                    — awaiting events —
+                </span>
             </div>
         """, unsafe_allow_html=True)
         return
@@ -433,7 +478,6 @@ def render_log(log):
     )
 
 
-# ── Video processing loop (demo + upload) ─────────────────
 def process_video_loop(cap, frame_window, s, conf):
     frame_count = 0
     last_hands, last_lids = [], []
@@ -448,17 +492,13 @@ def process_video_loop(cap, frame_window, s, conf):
 
         frame_count += 1
 
-        # Run YOLO every 3rd frame at reduced resolution for speed
         if frame_count % 3 == 0:
             h, w = frame.shape[:2]
-            target_w = 320
-            target_h = int(target_w * h / w)
-            small = cv2.resize(frame, (target_w, target_h))
-            results = model(small, conf=conf, imgsz=target_w, verbose=False)
+            tw, th = 320, int(320 * h / w)
+            small = cv2.resize(frame, (tw, th))
+            results = model(small, conf=conf, imgsz=tw, verbose=False)
             last_hands, last_lids = [], []
-            sx = w / target_w
-            sy = h / target_h
-
+            sx, sy = w / tw, h / th
             for r in results:
                 for box in r.boxes:
                     c = box.xyxy[0].tolist()
@@ -469,31 +509,28 @@ def process_video_loop(cap, frame_window, s, conf):
                     else:
                         last_lids.append(scaled)
 
-        # Draw last known detections on every frame
         for c in last_hands:
             x1, y1, x2, y2 = map(int, c)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 191, 0), 2)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (200, 170, 120), 2)
             cv2.putText(frame, 'hand', (x1, y1-5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 191, 0), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 170, 120), 1)
         for c in last_lids:
             x1, y1, x2, y2 = map(int, c)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (80, 200, 120), 2)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (196, 18, 48), 2)
             cv2.putText(frame, 'lid', (x1, y1-5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (80, 200, 120), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (196, 18, 48), 1)
 
         hand_contact = any(
             not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
             for h in last_hands for l in last_lids
         )
         run_logic(len(last_lids), hand_contact, s)
-
         frame_window.image(frame, channels="BGR", width='stretch')
         render_metrics(s["total_inv"], s["calibrated"])
         render_log(s["log"])
         time.sleep(0.03)
 
 
-# ── WebRTC processor ──────────────────────────────────────
 class LidDetector(VideoProcessorBase):
     def __init__(self):
         self.conf = 0.5
@@ -518,7 +555,7 @@ class LidDetector(VideoProcessorBase):
                 else:
                     lids.append(coords)
                 x1, y1, x2, y2 = map(int, coords)
-                color = (255, 191, 0) if label == 'hand' else (80, 200, 120)
+                color = (200, 170, 120) if label == 'hand' else (196, 18, 48)
                 cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(img, label, (x1, y1-5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1)
@@ -555,7 +592,6 @@ with col2:
 with col1:
     st.markdown("<div class='section-header'>Camera Feed</div>", unsafe_allow_html=True)
 
-    # ── Live Camera ──
     if mode == "Live Camera (WebRTC)":
         for k in ['demo_cap', 'upload_cap']:
             if k in st.session_state:
@@ -589,7 +625,6 @@ with col1:
             render_metrics(0, False, cam_status="IDLE")
             render_log([])
 
-    # ── Demo Video ──
     elif mode == "Demo Video":
         if 'upload_cap' in st.session_state:
             st.session_state.upload_cap.release()
@@ -620,14 +655,13 @@ with col1:
             render_metrics(s_demo["total_inv"], s_demo["calibrated"])
             render_log(s_demo["log"])
             st.markdown("""
-                <div style='color:#2d3340;font-size:12px;text-align:center;
-                            padding:48px;border:1px dashed #1e2229;border-radius:8px;
-                            letter-spacing:1px'>
+                <div style='color:#3d4048;font-size:12px;text-align:center;
+                            padding:48px;border:1px dashed #252830;border-radius:8px;
+                            letter-spacing:1px;font-family:Inter,sans-serif'>
                     Press ▶ Start Demo to begin
                 </div>
             """, unsafe_allow_html=True)
 
-    # ── Upload Video ──
     else:
         if 'demo_cap' in st.session_state:
             st.session_state.demo_cap.release()
@@ -679,9 +713,9 @@ with col1:
                 render_metrics(s_upload["total_inv"], s_upload["calibrated"])
                 render_log(s_upload["log"])
                 st.markdown("""
-                    <div style='color:#2d3340;font-size:12px;text-align:center;
-                                padding:48px;border:1px dashed #1e2229;border-radius:8px;
-                                letter-spacing:1px'>
+                    <div style='color:#3d4048;font-size:12px;text-align:center;
+                                padding:48px;border:1px dashed #252830;border-radius:8px;
+                                letter-spacing:1px;font-family:Inter,sans-serif'>
                         Press ▶ Start to begin
                     </div>
                 """, unsafe_allow_html=True)
@@ -689,9 +723,9 @@ with col1:
             render_metrics(0, False)
             render_log([])
             st.markdown("""
-                <div style='color:#2d3340;font-size:12px;text-align:center;
-                            padding:48px;border:1px dashed #1e2229;border-radius:8px;
-                            letter-spacing:1px'>
+                <div style='color:#3d4048;font-size:12px;text-align:center;
+                            padding:48px;border:1px dashed #252830;border-radius:8px;
+                            letter-spacing:1px;font-family:Inter,sans-serif'>
                     Upload a .mp4 / .mov / .avi to begin
                 </div>
             """, unsafe_allow_html=True)
