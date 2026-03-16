@@ -5,6 +5,8 @@ from ultralytics import YOLO
 import time
 import av
 import threading
+import tempfile
+import os
 
 st.set_page_config(page_title="All-Clad Lid Inventory", layout="wide")
 
@@ -18,14 +20,12 @@ st.markdown("""
 st.title("All-Clad Lid Inventory Tracking")
 st.write("Lid Count Tracking | Anirudh Yuvaraj")
 
-# --- SIDEBAR ---
 st.sidebar.header("System Control")
 st.sidebar.image("logo.png", width=150)
 conf_threshold = st.sidebar.slider("AI Confidence", 0.3, 0.9, 0.5)
 reset_btn = st.sidebar.button("Hard Reset Inventory Count")
-mode = st.sidebar.radio("Input Mode", ["Live Camera (WebRTC)", "Demo Video"])
+mode = st.sidebar.radio("Input Mode", ["Live Camera (WebRTC)", "Demo Video", "Upload Video"])
 
-# --- MODEL ---
 @st.cache_resource
 def get_model():
     return YOLO('lidDetection.pt')
@@ -40,6 +40,20 @@ RTC_CONFIG = RTCConfiguration({
         {"urls": ["stun:stun1.l.google.com:19302"]},
     ]
 })
+
+
+def make_state():
+    return {
+        "lid_memory": [],
+        "last_stable_count": -1,
+        "touching": False,
+        "prev_hand": False,
+        "grab_count": 0,
+        "confirm": 0,
+        "calibrated": False,
+        "total_inv": 0,
+        "log": [],
+    }
 
 
 def run_logic(current_visible, hand_contact, s):
@@ -101,21 +115,44 @@ def run_logic(current_visible, hand_contact, s):
         s["last_stable_count"] = stable_count
 
 
-def make_state():
-    return {
-        "lid_memory": [],
-        "last_stable_count": -1,
-        "touching": False,
-        "prev_hand": False,
-        "grab_count": 0,
-        "confirm": 0,
-        "calibrated": False,
-        "total_inv": 0,
-        "log": [],
-    }
+def process_video_loop(cap, frame_window, metric_ph, cal_ph, log_ph, s, conf):
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ret, frame = cap.read()
+        if not ret:
+            break
+
+        results = model(frame, conf=conf, imgsz=640, verbose=False)
+        hands, lids = [], []
+        for r in results:
+            for box in r.boxes:
+                coords = box.xyxy[0].tolist()
+                label = model.names[int(box.cls[0])]
+                if label == 'hand':
+                    hands.append(coords)
+                else:
+                    lids.append(coords)
+                x1, y1, x2, y2 = map(int, coords)
+                color = (255, 191, 0) if label == 'hand' else (0, 255, 127)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                cv2.putText(frame, label, (x1, y1 - 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+
+        hand_contact = any(
+            not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
+            for h in hands for l in lids
+        )
+        run_logic(len(lids), hand_contact, s)
+
+        frame_window.image(frame, channels="BGR", width='stretch')
+        metric_ph.metric("Current Inventory", f"{s['total_inv']} Units")
+        cal_ph.write(f"Calibrated: {s['calibrated']}")
+        log_ph.text("\n".join(s['log'][:8]))
+        time.sleep(0.05)
 
 
-# --- VIDEO PROCESSOR ---
 class LidDetector(VideoProcessorBase):
     def __init__(self):
         self.conf = 0.5
@@ -150,7 +187,6 @@ class LidDetector(VideoProcessorBase):
             not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
             for h in hands for l in lids
         )
-
         with self.lock:
             run_logic(current_visible, hand_contact, self.s)
 
@@ -164,7 +200,6 @@ class LidDetector(VideoProcessorBase):
 # --- LAYOUT ---
 col1, col2 = st.columns([2, 1])
 
-# Placeholders so we can update metrics without rerunning the whole page
 with col2:
     st.subheader("Real-Time Metrics")
     metric_placeholder = st.empty()
@@ -176,9 +211,16 @@ with col1:
     st.subheader("Live Camera Feed")
 
     if mode == "Live Camera (WebRTC)":
-        if 'demo_cap' in st.session_state:
-            st.session_state.demo_cap.release()
-            del st.session_state.demo_cap
+        for cap_key in ['demo_cap', 'upload_cap']:
+            if cap_key in st.session_state:
+                st.session_state[cap_key].release()
+                del st.session_state[cap_key]
+        if 'upload_path' in st.session_state:
+            try:
+                os.remove(st.session_state.upload_path)
+            except Exception:
+                pass
+            del st.session_state['upload_path']
 
         ctx = webrtc_streamer(
             key="lid-detector",
@@ -191,8 +233,6 @@ with col1:
             ctx.video_processor.conf = conf_threshold
             if reset_btn:
                 ctx.video_processor.reset()
-
-            # Poll loop — updates placeholders without full page rerun
             while True:
                 total_inv, log, calibrated = ctx.video_processor.get_display()
                 metric_placeholder.metric("Current Inventory", f"{total_inv} Units")
@@ -202,68 +242,102 @@ with col1:
         else:
             metric_placeholder.metric("Current Inventory", "-- Units")
             cal_placeholder.write("Waiting for camera...")
+            log_placeholder.text("")
 
-    else:
-        # Demo mode
-        s = make_state()
-        if reset_btn:
-            s = make_state()
+    elif mode == "Demo Video":
+        if 'upload_cap' in st.session_state:
+            st.session_state.upload_cap.release()
+            del st.session_state.upload_cap
 
-        frame_window = st.empty()
-        status_placeholder = st.empty()
+        if reset_btn or 's_demo' not in st.session_state:
+            st.session_state.s_demo = make_state()
+        s_demo = st.session_state.s_demo
 
         if 'demo_cap' not in st.session_state or reset_btn:
             if 'demo_cap' in st.session_state:
                 st.session_state.demo_cap.release()
             st.session_state.demo_cap = cv2.VideoCapture("demo_video.mp4")
-
-        col_start, col_stop = st.columns(2)
-        with col_start:
-            start = st.button("▶ Start Demo")
-        with col_stop:
-            stop = st.button("⏹ Stop Demo")
-
-        if start:
-            st.session_state.demo_running = True
-        if stop:
             st.session_state.demo_running = False
 
+        frame_window = st.empty()
+        col_start, col_stop = st.columns(2)
+        with col_start:
+            if st.button("▶ Start Demo"):
+                st.session_state.demo_running = True
+        with col_stop:
+            if st.button("⏹ Stop Demo"):
+                st.session_state.demo_running = False
+
         if st.session_state.get('demo_running', False):
-            cap = st.session_state.demo_cap
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                    ret, frame = cap.read()
-
-                if ret:
-                    results = model(frame, conf=conf_threshold, imgsz=640, verbose=False)
-                    hands, lids = [], []
-                    for r in results:
-                        for box in r.boxes:
-                            coords = box.xyxy[0].tolist()
-                            label = model.names[int(box.cls[0])]
-                            if label == 'hand':
-                                hands.append(coords)
-                            else:
-                                lids.append(coords)
-                            x1, y1, x2, y2 = map(int, coords)
-                            color = (255, 191, 0) if label == 'hand' else (0, 255, 127)
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                            cv2.putText(frame, label, (x1, y1 - 5),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
-
-                    hand_contact = any(
-                        not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
-                        for h in hands for l in lids
-                    )
-                    run_logic(len(lids), hand_contact, s)
-
-                    frame_window.image(frame, channels="BGR", width='stretch')
-                    metric_placeholder.metric("Current Inventory", f"{s['total_inv']} Units")
-                    cal_placeholder.write(f"Calibrated: {s['calibrated']}")
-                    log_placeholder.text("\n".join(s['log'][:8]))
-                    time.sleep(0.05)
+            process_video_loop(
+                st.session_state.demo_cap,
+                frame_window,
+                metric_placeholder,
+                cal_placeholder,
+                log_placeholder,
+                s_demo,
+                conf_threshold,
+            )
         else:
             metric_placeholder.metric("Current Inventory", "-- Units")
             cal_placeholder.write("Press ▶ Start Demo to begin.")
+            log_placeholder.text("")
+
+    else:  # Upload Video
+        if 'demo_cap' in st.session_state:
+            st.session_state.demo_cap.release()
+            del st.session_state.demo_cap
+
+        if reset_btn or 's_upload' not in st.session_state:
+            st.session_state.s_upload = make_state()
+        s_upload = st.session_state.s_upload
+
+        uploaded = st.file_uploader("Upload a video", type=["mp4", "mov", "avi"])
+
+        if uploaded is not None:
+            if st.session_state.get('upload_name') != uploaded.name:
+                if 'upload_cap' in st.session_state:
+                    st.session_state.upload_cap.release()
+                if 'upload_path' in st.session_state:
+                    try:
+                        os.remove(st.session_state.upload_path)
+                    except Exception:
+                        pass
+                tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+                tfile.write(uploaded.read())
+                tfile.flush()
+                tfile.close()
+                st.session_state.upload_cap = cv2.VideoCapture(tfile.name)
+                st.session_state.upload_path = tfile.name
+                st.session_state.upload_name = uploaded.name
+                st.session_state.upload_running = False
+                st.session_state.s_upload = make_state()
+                s_upload = st.session_state.s_upload
+
+            frame_window_up = st.empty()
+            col_start_u, col_stop_u = st.columns(2)
+            with col_start_u:
+                if st.button("▶ Start", key="up_start"):
+                    st.session_state.upload_running = True
+            with col_stop_u:
+                if st.button("⏹ Stop", key="up_stop"):
+                    st.session_state.upload_running = False
+
+            if st.session_state.get('upload_running', False):
+                process_video_loop(
+                    st.session_state.upload_cap,
+                    frame_window_up,
+                    metric_placeholder,
+                    cal_placeholder,
+                    log_placeholder,
+                    s_upload,
+                    conf_threshold,
+                )
+            else:
+                metric_placeholder.metric("Current Inventory", "-- Units")
+                cal_placeholder.write("Press ▶ Start to begin.")
+                log_placeholder.text("")
+        else:
+            metric_placeholder.metric("Current Inventory", "-- Units")
+            cal_placeholder.write("Upload a video to begin.")
+            log_placeholder.text("")
