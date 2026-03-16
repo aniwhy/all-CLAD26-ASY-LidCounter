@@ -132,21 +132,91 @@ class LidDetector(VideoProcessorBase):
 # --- LAYOUT ---
 col1, col2 = st.columns([2, 1])
 
-with col1:
-    st.subheader("Live Camera Feed")
-    ctx = webrtc_streamer(
-        key="lid-detector",
-        video_processor_factory=LidDetector,
-        rtc_configuration=RTC_CONFIG,
-        media_stream_constraints={"video": True, "audio": False},
-    )
-    if ctx.video_processor:
-        ctx.video_processor.conf = conf_threshold
-
 with col2:
     st.subheader("Real-Time Metrics")
-    st.metric("CURRENT INVENTORY", f"{st.session_state.total_inv} Units")
-    status = "ACTIVE" if (ctx and ctx.state.playing) else "IDLE"
-    st.write(f"Camera: {status} | Calibrated: {st.session_state.calibrated}")
+    st.metric("Current Inventory", f"{st.session_state.total_inv} Units")
     st.subheader("Event History")
     st.text("\n".join(st.session_state.log_data[:8]))
+
+with col1:
+    st.subheader("Live Camera Feed")
+
+    if mode == "📱 Live Camera (WebRTC)":
+        ctx = webrtc_streamer(
+            key="lid-detector",
+            video_processor_factory=LidDetector,
+            rtc_configuration=RTC_CONFIG,
+            media_stream_constraints={"video": True, "audio": False},
+        )
+        if ctx.video_processor:
+            ctx.video_processor.conf = conf_threshold
+        status = "ACTIVE" if (ctx and ctx.state.playing) else "IDLE"
+        st.write(f"Camera: {status} | Calibrated: {st.session_state.calibrated}")
+
+    else:
+        # Demo video mode using OpenCV loop
+        frame_window = st.empty()
+        if 'demo_cap' not in st.session_state:
+            st.session_state.demo_cap = cv2.VideoCapture("test_video.mp4")
+        cap = st.session_state.demo_cap
+
+        stop_btn = st.button("⏹ Stop Demo")
+        while cap.isOpened() and not stop_btn:
+            ret, frame = cap.read()
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+
+            results = model(frame, conf=conf_threshold, imgsz=640, verbose=False)
+            hands, lids = [], []
+            for r in results:
+                for box in r.boxes:
+                    coords = box.xyxy[0].tolist()
+                    label = model.names[int(box.cls[0])]
+                    if label == 'hand':
+                        hands.append(coords)
+                    else:
+                        lids.append(coords)
+                    x1, y1, x2, y2 = map(int, coords)
+                    color = (255, 191, 0) if label == 'hand' else (0, 255, 127)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                    cv2.putText(frame, label, (x1, y1 - 5),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+
+            current_visible = len(lids)
+            st.session_state.lid_memory.append(current_visible)
+            if len(st.session_state.lid_memory) > BUFFER_SIZE:
+                st.session_state.lid_memory.pop(0)
+
+            stable_count = (
+                max(set(st.session_state.lid_memory), key=st.session_state.lid_memory.count)
+                if st.session_state.lid_memory else 0
+            )
+
+            if not st.session_state.calibrated and len(st.session_state.lid_memory) == BUFFER_SIZE:
+                st.session_state.total_inv = stable_count
+                st.session_state.calibrated = True
+
+            if (st.session_state.calibrated
+                    and stable_count > st.session_state.last_stable_count
+                    and st.session_state.last_stable_count == 0):
+                st.session_state.total_inv += 5
+                st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+5)")
+
+            hand_contact = any(
+                not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
+                for h in hands for l in lids
+            )
+            if hand_contact:
+                st.session_state.hand_touching_active = True
+            if st.session_state.hand_touching_active and current_visible < stable_count:
+                st.session_state.missing_count += 1
+            if st.session_state.missing_count >= PICK_CONFIDENCE:
+                st.session_state.total_inv -= 1
+                st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Unit Removed (-1)")
+                st.session_state.missing_count = 0
+                st.session_state.hand_touching_active = False
+
+            st.session_state.last_stable_count = stable_count
+            frame_window.image(frame, channels="BGR", width='stretch')
+            time.sleep(0.01)
