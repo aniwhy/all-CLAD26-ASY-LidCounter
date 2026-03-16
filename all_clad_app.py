@@ -62,16 +62,30 @@ with col2:
 
 # --- VIDEO INITIALIZATION ---
 PHONE_IP_URL = "http://192.168.0.52:4747/video"
-BUFFER_SIZE = 15
-PICK_CONFIDENCE = 10
 
 if 'cap' not in st.session_state:
+    st.session_state.cap = None
+    st.session_state.using_demo = False
+    
     cap = cv2.VideoCapture(PHONE_IP_URL)
-    if not cap.isOpened():
-        cap = cv2.VideoCapture("test_video.mp4")
-    st.session_state.cap = cap
+    # Short timeout test — don't wait 30s
+    cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 3000)
+    
+    if cap.isOpened():
+        st.session_state.cap = cap
+        st.session_state.using_demo = False
+    else:
+        cap.release()
+        demo = cv2.VideoCapture("test_video.mp4")
+        st.session_state.cap = demo
+        st.session_state.using_demo = True
 
 cap = st.session_state.cap
+
+if st.session_state.using_demo:
+    st.sidebar.warning("Phone not found — running demo video")
+else:
+    st.sidebar.success("Live camera connected!")
 
 # --- MAIN LOOP ---
 while cap.isOpened():
