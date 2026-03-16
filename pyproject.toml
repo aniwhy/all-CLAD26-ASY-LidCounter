@@ -1,0 +1,4 @@
+[tool.uv]
+override-dependencies = [
+    "opencv-python ; sys_platform == 'never'",
+]
