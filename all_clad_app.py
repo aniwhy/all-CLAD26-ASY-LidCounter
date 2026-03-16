@@ -62,9 +62,12 @@ RTC_CONFIG = RTCConfiguration({
 })
 
 # --- VIDEO PROCESSOR ---
+# recv() runs in a background thread so we only do detection here
+# and store raw results for the main thread to process
 class LidDetector(VideoProcessorBase):
     def __init__(self):
         self.conf = 0.5
+        self.result = {"current_visible": 0, "hand_contact": False}
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
@@ -87,43 +90,52 @@ class LidDetector(VideoProcessorBase):
                 cv2.putText(img, label, (x1, y1 - 5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-        current_visible = len(lids)
-        st.session_state.lid_memory.append(current_visible)
-        if len(st.session_state.lid_memory) > BUFFER_SIZE:
-            st.session_state.lid_memory.pop(0)
-
-        stable_count = (
-            max(set(st.session_state.lid_memory), key=st.session_state.lid_memory.count)
-            if st.session_state.lid_memory else 0
-        )
-
-        if not st.session_state.calibrated and len(st.session_state.lid_memory) == BUFFER_SIZE:
-            st.session_state.total_inv = stable_count
-            st.session_state.calibrated = True
-
-        if (st.session_state.calibrated
-                and stable_count > st.session_state.last_stable_count
-                and st.session_state.last_stable_count == 0):
-            st.session_state.total_inv += 5
-            st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+5)")
-
         hand_contact = any(
             not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
             for h in hands for l in lids
         )
 
-        if hand_contact:
-            st.session_state.hand_touching_active = True
-        if st.session_state.hand_touching_active and current_visible < stable_count:
-            st.session_state.missing_count += 1
-        if st.session_state.missing_count >= PICK_CONFIDENCE:
-            st.session_state.total_inv -= 1
-            st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Unit Removed (-1)")
-            st.session_state.missing_count = 0
-            st.session_state.hand_touching_active = False
+        # Store for main thread — never touch st.session_state here
+        self.result = {
+            "current_visible": len(lids),
+            "hand_contact": hand_contact,
+        }
 
-        st.session_state.last_stable_count = stable_count
         return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+
+def run_logic(current_visible, hand_contact):
+    """Shared inventory logic used by both modes."""
+    st.session_state.lid_memory.append(current_visible)
+    if len(st.session_state.lid_memory) > BUFFER_SIZE:
+        st.session_state.lid_memory.pop(0)
+
+    stable_count = (
+        max(set(st.session_state.lid_memory), key=st.session_state.lid_memory.count)
+        if st.session_state.lid_memory else 0
+    )
+
+    if not st.session_state.calibrated and len(st.session_state.lid_memory) == BUFFER_SIZE:
+        st.session_state.total_inv = stable_count
+        st.session_state.calibrated = True
+
+    if (st.session_state.calibrated
+            and stable_count > st.session_state.last_stable_count
+            and st.session_state.last_stable_count == 0):
+        st.session_state.total_inv += 5
+        st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+5)")
+
+    if hand_contact:
+        st.session_state.hand_touching_active = True
+    if st.session_state.hand_touching_active and current_visible < stable_count:
+        st.session_state.missing_count += 1
+    if st.session_state.missing_count >= PICK_CONFIDENCE:
+        st.session_state.total_inv -= 1
+        st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Unit Removed (-1)")
+        st.session_state.missing_count = 0
+        st.session_state.hand_touching_active = False
+
+    st.session_state.last_stable_count = stable_count
 
 
 # --- LAYOUT ---
@@ -132,6 +144,7 @@ col1, col2 = st.columns([2, 1])
 with col2:
     st.subheader("Real-Time Metrics")
     st.metric("Current Inventory", f"{st.session_state.total_inv} Units")
+    st.write(f"Calibrated: {st.session_state.calibrated}")
     st.subheader("Event History")
     st.text("\n".join(st.session_state.log_data[:8]))
 
@@ -139,11 +152,11 @@ with col1:
     st.subheader("Live Camera Feed")
 
     if mode == "Live Camera (WebRTC)":
-        # Clean up demo cap if switching from demo mode
+        # Clean up demo state if switching from demo mode
         if 'demo_cap' in st.session_state:
             st.session_state.demo_cap.release()
             del st.session_state.demo_cap
-            st.session_state.demo_running = False
+        st.session_state.demo_running = False
 
         ctx = webrtc_streamer(
             key="lid-detector",
@@ -151,12 +164,19 @@ with col1:
             rtc_configuration=RTC_CONFIG,
             media_stream_constraints={"video": True, "audio": False},
         )
+
         if ctx.video_processor:
             ctx.video_processor.conf = conf_threshold
-        status = "ACTIVE" if (ctx and ctx.state.playing) else "IDLE"
-        st.write(f"Camera: {status} | Calibrated: {st.session_state.calibrated}")
+            # Read detection results on main thread and run logic
+            r = ctx.video_processor.result
+            run_logic(r["current_visible"], r["hand_contact"])
+            status = "ACTIVE" if ctx.state.playing else "IDLE"
+            st.write(f"Camera: {status}")
+            time.sleep(0.05)
+            st.rerun()
 
     else:
+        # Clean up webrtc state if switching from live mode
         frame_window = st.empty()
 
         if 'demo_cap' not in st.session_state:
@@ -195,41 +215,11 @@ with col1:
                         cv2.putText(frame, label, (x1, y1 - 5),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-                current_visible = len(lids)
-                st.session_state.lid_memory.append(current_visible)
-                if len(st.session_state.lid_memory) > BUFFER_SIZE:
-                    st.session_state.lid_memory.pop(0)
-
-                stable_count = (
-                    max(set(st.session_state.lid_memory), key=st.session_state.lid_memory.count)
-                    if st.session_state.lid_memory else 0
-                )
-
-                if not st.session_state.calibrated and len(st.session_state.lid_memory) == BUFFER_SIZE:
-                    st.session_state.total_inv = stable_count
-                    st.session_state.calibrated = True
-
-                if (st.session_state.calibrated
-                        and stable_count > st.session_state.last_stable_count
-                        and st.session_state.last_stable_count == 0):
-                    st.session_state.total_inv += 5
-                    st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+5)")
-
                 hand_contact = any(
                     not (h[2] < l[0] or h[0] > l[2] or h[3] < l[1] or h[1] > l[3])
                     for h in hands for l in lids
                 )
-                if hand_contact:
-                    st.session_state.hand_touching_active = True
-                if st.session_state.hand_touching_active and current_visible < stable_count:
-                    st.session_state.missing_count += 1
-                if st.session_state.missing_count >= PICK_CONFIDENCE:
-                    st.session_state.total_inv -= 1
-                    st.session_state.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Unit Removed (-1)")
-                    st.session_state.missing_count = 0
-                    st.session_state.hand_touching_active = False
-
-                st.session_state.last_stable_count = stable_count
+                run_logic(len(lids), hand_contact)
                 frame_window.image(frame, channels="BGR", width='stretch')
                 time.sleep(0.01)
                 st.rerun()
