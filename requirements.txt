@@ -1,4 +1,6 @@
 streamlit
+opencv-python-headless
 pandas
 ultralytics
-opencv-python-headless
+streamlit-webrtc
+av
