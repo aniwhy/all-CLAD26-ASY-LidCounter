@@ -29,12 +29,13 @@ defaults = {
     'total_inv': 0,
     'log_data': [],
     'lid_memory': [],
-    'last_stable_count': -1,   # -1 means uncalibrated, avoids false 0 triggers
+    'last_stable_count': -1,
     'hand_touching_active': False,
     'calibrated': False,
-    'missing_count': 0,
     'demo_running': False,
     'prev_hand_contact': False,
+    'count_before_grab': 0,
+    'post_grab_confirm': 0,
 }
 for k, v in defaults.items():
     if k not in st.session_state or reset_btn:
@@ -48,7 +49,6 @@ def get_model():
 model = get_model()
 
 BUFFER_SIZE = 15
-PICK_CONFIDENCE = 10
 
 RTC_CONFIG = RTCConfiguration({
     "iceServers": [
@@ -93,9 +93,12 @@ class LidDetector(VideoProcessorBase):
 def run_logic(current_visible, hand_contact):
     ss = st.session_state
 
-    ss.lid_memory.append(current_visible)
-    if len(ss.lid_memory) > BUFFER_SIZE:
-        ss.lid_memory.pop(0)
+    # Only update lid memory when hand is not in frame
+    # so camera wobble during a grab doesn't corrupt the buffer
+    if not hand_contact:
+        ss.lid_memory.append(current_visible)
+        if len(ss.lid_memory) > BUFFER_SIZE:
+            ss.lid_memory.pop(0)
 
     if not ss.lid_memory:
         return
@@ -108,30 +111,51 @@ def run_logic(current_visible, hand_contact):
         ss.last_stable_count = stable_count
         ss.calibrated = True
         ss.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Calibrated ({stable_count} lids)")
-        return  # don't run event logic on calibration frame
+        return
 
     if not ss.calibrated:
         return
 
-    # Stack added: lids appear after being empty
-    if stable_count > ss.last_stable_count and ss.last_stable_count == 0:
+    # Stack added: only trigger when hand free and count rises from 0
+    if not hand_contact and stable_count > ss.last_stable_count and ss.last_stable_count == 0:
         ss.total_inv += stable_count
         ss.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Stack Added (+{stable_count})")
+        ss.last_stable_count = stable_count
 
-    # Hand touched a lid
+    # Hand just touched — snapshot the stable count before anything moves
     if hand_contact and not ss.prev_hand_contact:
         ss.hand_touching_active = True
+        ss.count_before_grab = ss.last_stable_count
+        ss.post_grab_confirm = 0
 
-    # Hand left — check if a lid disappeared
+    # Hand just left — start confirmation window
     if not hand_contact and ss.prev_hand_contact and ss.hand_touching_active:
-        if current_visible < stable_count:
-            removed = stable_count - current_visible
-            ss.total_inv -= removed
-            ss.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Unit Removed (-{removed})")
-        ss.hand_touching_active = False
+        ss.post_grab_confirm = 0
+
+    # Confirmation window: count consecutive frames where lid count stays lower
+    if not hand_contact and ss.hand_touching_active:
+        if current_visible < ss.count_before_grab:
+            ss.post_grab_confirm += 1
+        else:
+            # Count recovered — false alarm (camera moved, lid put back, etc.)
+            ss.post_grab_confirm = 0
+            ss.hand_touching_active = False
+
+        # Only subtract after 5 consistent frames confirming lid is gone
+        if ss.post_grab_confirm >= 5:
+            removed = ss.count_before_grab - current_visible
+            if removed > 0:
+                ss.total_inv -= removed
+                ss.log_data.insert(0, f"{time.strftime('%H:%M:%S')} - Unit Removed (-{removed})")
+                ss.last_stable_count = current_visible
+            ss.hand_touching_active = False
+            ss.post_grab_confirm = 0
 
     ss.prev_hand_contact = hand_contact
-    ss.last_stable_count = stable_count
+
+    # Update baseline only when hand is completely clear
+    if not hand_contact and not ss.hand_touching_active:
+        ss.last_stable_count = stable_count
 
 
 # --- LAYOUT ---
@@ -166,15 +190,10 @@ with col1:
             run_logic(r["current_visible"], r["hand_contact"])
             status = "ACTIVE" if ctx.state.playing else "IDLE"
             st.write(f"Camera: {status}")
-            # Rerun only every 200ms to reduce lag
             time.sleep(0.2)
             st.rerun()
 
     else:
-        if 'demo_cap' in st.session_state and mode == "Live Camera (WebRTC)":
-            st.session_state.demo_cap.release()
-            del st.session_state.demo_cap
-
         frame_window = st.empty()
 
         if 'demo_cap' not in st.session_state:
