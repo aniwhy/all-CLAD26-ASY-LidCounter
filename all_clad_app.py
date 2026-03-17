@@ -681,16 +681,6 @@ mode           = st.sidebar.radio(
     "Input Mode",
     ["Live Camera (WebRTC)", "Demo Video", "Upload Video"]
 )
-st.sidebar.markdown(
-    f"<div style='height:1px;background:{BORDER};margin:16px 0'></div>",
-    unsafe_allow_html=True
-)
-st.sidebar.markdown(
-    f"<p style='font-size:10px;color:{TEXT_DIMMER};letter-spacing:1px;"
-    f"text-transform:uppercase;line-height:2.4'>"
-    f"Model · lidDetection.pt<br>Buffer · 15 frames<br>Confirm · 8 frames</p>",
-    unsafe_allow_html=True
-)
 
 # ── Main layout ───────────────────────────────────────────
 col1, col2 = st.columns([2, 1])
