@@ -55,7 +55,7 @@ try:
         logo_b64 = base64.b64encode(f.read()).decode()
     logo_html = (
         f"<img src='data:image/png;base64,{logo_b64}' "
-        f"style='width:100px;margin-bottom:28px;'/>"
+        f"style='width:90px;margin-bottom:32px;opacity:0.95;'/>"
     )
 except Exception:
     pass
@@ -63,7 +63,7 @@ except Exception:
 # ── CSS ───────────────────────────────────────────────────
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@400;500;600&display=swap');
 
 html, body, [class*="css"], [data-testid],
 *, *::before, *::after,
@@ -78,11 +78,7 @@ button, input, select, textarea, p, span, div, a, label {{
     background-color: {BG2} !important;
     border-right: 1px solid {BORDER} !important;
 }}
-
-/* Hide the collapse/expand button permanently */
-[data-testid="collapsedControl"] {{
-    display: none !important;
-}}
+[data-testid="collapsedControl"] {{ display: none !important; }}
 
 p, span, label, .stMarkdown,
 [data-testid="stText"],
@@ -98,8 +94,12 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     100% {{ box-shadow: 0 0 0 0 rgba(196,18,48,0); }}
 }}
 @keyframes fadeInUp {{
-    from {{ opacity: 0; transform: translateY(5px); }}
+    from {{ opacity: 0; transform: translateY(6px); }}
     to   {{ opacity: 1; transform: translateY(0); }}
+}}
+@keyframes fadeIn {{
+    from {{ opacity: 0; }}
+    to   {{ opacity: 1; }}
 }}
 @keyframes shimmer-red {{
     0%   {{ background-position: 0%; }}
@@ -110,54 +110,69 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     50%       {{ opacity: 0.4; }}
 }}
 @keyframes bounce {{
-    0%, 100% {{ transform: translateY(0);   opacity: 0.5; }}
-    50%       {{ transform: translateY(8px); opacity: 1;   }}
+    0%, 100% {{ transform: translateY(0);   opacity: 0.4; }}
+    50%       {{ transform: translateY(9px); opacity: 1;   }}
 }}
 
-/* Welcome */
+/* ── Welcome ── */
 .welcome-wrap {{
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 88vh;
+    min-height: 92vh;
     text-align: center;
     padding: 40px 20px 20px 20px;
+    animation: fadeIn 0.6s ease;
+}}
+.welcome-eyebrow {{
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: {RED};
+    margin-bottom: 18px;
 }}
 .welcome-title {{
-    font-size: 30px;
-    font-weight: 700;
+    font-family: 'Playfair Display', serif !important;
+    font-size: 48px;
+    font-weight: 500;
     color: {TEXT};
-    letter-spacing: 1px;
-    margin-bottom: 8px;
+    letter-spacing: 0px;
+    line-height: 1.1;
+    margin-bottom: 12px;
 }}
 .welcome-sub {{
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 400;
     color: {TEXT_DIM};
-    letter-spacing: 2.5px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    margin-bottom: 40px;
+    margin-bottom: 44px;
+    line-height: 1.6;
 }}
 .welcome-divider {{
-    width: 40px;
-    height: 2px;
+    width: 32px;
+    height: 1px;
     background: {RED};
-    margin: 0 auto 40px auto;
+    margin: 0 auto 44px auto;
+    opacity: 0.6;
 }}
 .welcome-hint {{
-    font-size: 11px;
+    font-size: 10px;
+    font-weight: 500;
     color: {TEXT_DIMMER};
-    letter-spacing: 2px;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }}
 .welcome-arrow {{
-    font-size: 20px;
+    font-size: 18px;
     color: {ARROW};
-    animation: bounce 1.8s ease infinite;
+    animation: bounce 2s ease infinite;
     display: block;
-    margin-top: 6px;
-    margin-bottom: 28px;
+    margin-top: 4px;
+    margin-bottom: 32px;
 }}
 
 /* Metric card */
@@ -332,10 +347,8 @@ button:hover,
     color: {TEXT_DIM} !important; font-size: 12px !important;
 }}
 
-/* Hide default metric */
 [data-testid="stMetric"] {{ display: none; }}
 
-/* Sidebar text */
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
 [data-testid="stSidebar"] label,
@@ -343,7 +356,6 @@ button:hover,
     color: {TEXT_DIM} !important; font-size: 12px !important;
 }}
 
-/* Footer */
 .footer {{
     margin-top: 48px;
     padding: 18px 0 8px 0;
@@ -363,14 +375,12 @@ button:hover,
 .footer a       {{ color: {RED} !important; text-decoration: none; }}
 .footer a:hover {{ color: {RED_BRIGHT} !important; }}
 
-/* Placeholder */
 .placeholder-box {{
     color: {TEXT_DIMMER}; font-size: 12px; text-align: center;
     padding: 48px; border: 1px dashed {BORDER};
     border-radius: 8px; letter-spacing: 1px;
 }}
 
-/* Scrollbar */
 ::-webkit-scrollbar       {{ width: 4px; }}
 ::-webkit-scrollbar-track {{ background: {BG2}; }}
 ::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 2px; }}
@@ -393,10 +403,11 @@ if not st.session_state.show_app:
     st.markdown(f"""
         <div class="welcome-wrap">
             {logo_html}
-            <div class="welcome-title">All-Clad Lid Inventory</div>
-            <div class="welcome-sub">Computer Vision Tracking System</div>
+            <div class="welcome-eyebrow">All-Clad &nbsp;·&nbsp; 2026</div>
+            <div class="welcome-title">Lid Inventory<br>Tracking System</div>
+            <div class="welcome-sub">Computer Vision &nbsp;·&nbsp; Production Line 1</div>
             <div class="welcome-divider"></div>
-            <div class="welcome-hint">Click below to enter</div>
+            <div class="welcome-hint">Click to enter</div>
             <span class="welcome-arrow">↓</span>
         </div>
     """, unsafe_allow_html=True)
@@ -444,6 +455,10 @@ def make_state():
 
 
 def run_logic(current_visible, hand_contact, s):
+    """
+    Only update the lid memory buffer when no hand is present.
+    Snapshot baseline on touch. Confirm removal over N frames after hand leaves.
+    """
     if not hand_contact:
         s["lid_memory"].append(current_visible)
         if len(s["lid_memory"]) > BUFFER_SIZE:
@@ -454,6 +469,7 @@ def run_logic(current_visible, hand_contact, s):
 
     stable = max(set(s["lid_memory"]), key=s["lid_memory"].count)
 
+    # Calibrate once
     if not s["calibrated"]:
         if len(s["lid_memory"]) == BUFFER_SIZE:
             s["baseline"]   = stable
@@ -462,24 +478,29 @@ def run_logic(current_visible, hand_contact, s):
             s["log"].insert(0, f"{time.strftime('%H:%M:%S')}  Calibrated — {stable} lids")
         return
 
+    # Stack added from empty
     if not hand_contact and stable > s["baseline"] and s["baseline"] == 0:
         s["total_inv"] += stable
         s["baseline"]   = stable
         s["log"].insert(0, f"{time.strftime('%H:%M:%S')}  Stack Added (+{stable})")
         s["log"] = s["log"][:20]
 
+    # Hand just touched — snapshot current baseline
     if hand_contact and not s["hand_was_present"]:
         s["hand_is_present"] = True
         s["count_at_touch"]  = s["baseline"]
         s["confirm_frames"]  = 0
 
+    # Hand just left — start confirmation window
     if not hand_contact and s["hand_was_present"]:
         s["confirm_frames"] = 0
 
+    # Confirmation window: count stays lower after hand leaves
     if not hand_contact and s["hand_is_present"]:
         if current_visible < s["count_at_touch"]:
             s["confirm_frames"] += 1
         else:
+            # Recovered — false alarm
             s["confirm_frames"]  = 0
             s["hand_is_present"] = False
 
@@ -493,6 +514,7 @@ def run_logic(current_visible, hand_contact, s):
             s["hand_is_present"] = False
             s["confirm_frames"]  = 0
 
+    # Update baseline only when hand is fully clear
     if not hand_contact and not s["hand_is_present"]:
         s["baseline"] = stable
 
@@ -546,7 +568,7 @@ def render_log(log):
     )
 
 
-# ── Video loop ────────────────────────────────────────────
+# ── Video loop (demo + upload) ────────────────────────────
 def process_video_loop(cap, frame_window, s, conf):
     frame_count = 0
     last_hands, last_lids = [], []
@@ -561,6 +583,7 @@ def process_video_loop(cap, frame_window, s, conf):
 
         frame_count += 1
 
+        # Run YOLO every 3rd frame at reduced res for speed
         if frame_count % 3 == 0:
             h, w   = frame.shape[:2]
             tw, th = 320, int(320 * h / w)
@@ -733,6 +756,7 @@ with col1:
     st.markdown("<div class='section-header'>Camera Feed</div>",
                 unsafe_allow_html=True)
 
+    # ── Live Camera ──────────────────────────────────────
     if mode == "Live Camera (WebRTC)":
         for k in ['demo_cap', 'upload_cap']:
             if k in st.session_state:
@@ -756,16 +780,21 @@ with col1:
             ctx.video_processor.conf = conf_threshold
             if reset_btn:
                 ctx.video_processor.reset()
-            while True:
-                total_inv, log, calibrated = ctx.video_processor.get_display()
-                status = "ACTIVE" if ctx.state.playing else "IDLE"
-                render_metrics(total_inv, calibrated, cam_status=status)
-                render_log(log)
-                time.sleep(0.3)
+
+            # Read from processor and update display
+            total_inv, log, calibrated = ctx.video_processor.get_display()
+            status = "ACTIVE" if ctx.state.playing else "IDLE"
+            render_metrics(total_inv, calibrated, cam_status=status)
+            render_log(log)
+
+            # Rerun every 500ms to refresh display — fast enough, not laggy
+            time.sleep(0.5)
+            st.rerun()
         else:
             render_metrics(0, False, cam_status="IDLE")
             render_log([])
 
+    # ── Demo Video ───────────────────────────────────────
     elif mode == "Demo Video":
         if 'upload_cap' in st.session_state:
             st.session_state.upload_cap.release()
@@ -803,6 +832,7 @@ with col1:
                 unsafe_allow_html=True
             )
 
+    # ── Upload Video ─────────────────────────────────────
     else:
         if 'demo_cap' in st.session_state:
             st.session_state.demo_cap.release()
