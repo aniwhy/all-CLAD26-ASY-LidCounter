@@ -12,7 +12,7 @@ import base64
 st.set_page_config(
     page_title="All-Clad Lid Inventory",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ── State ─────────────────────────────────────────────────
@@ -73,11 +73,13 @@ button, input, select, textarea, p, span, div, a, label {{
 .main, [data-testid="stAppViewContainer"] {{
     background-color: {BG} !important;
 }}
-[data-testid="stSidebar"] {{
-    background-color: {BG2} !important;
-    border-right: 1px solid {BORDER} !important;
+
+/* Hide sidebar and its toggle completely */
+[data-testid="stSidebar"],
+[data-testid="collapsedControl"] {{
+    display: none !important;
 }}
-[data-testid="collapsedControl"] {{ display: none !important; }}
+
 p, span, label, .stMarkdown,
 [data-testid="stText"],
 [data-testid="stMarkdownContainer"] p {{ color: {TEXT} !important; }}
@@ -109,6 +111,7 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     50%       {{ transform: translateY(9px); opacity: 1;   }}
 }}
 
+/* Welcome */
 .welcome-wrap {{
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; min-height: 92vh;
@@ -143,6 +146,27 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     display: block; margin-top: 4px; margin-bottom: 32px;
 }}
 
+/* Controls bar */
+.controls-bar {{
+    background: {BG2};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}}
+.ctrl-label {{
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: {TEXT_DIM};
+    margin-bottom: 4px;
+}}
+
+/* Metric card */
 .metric-card {{
     background: {BG3}; border: 1px solid {BORDER};
     border-radius: 10px; padding: 22px 24px; margin-bottom: 12px;
@@ -169,6 +193,7 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     margin-top: 6px !important; letter-spacing: 1px !important;
 }}
 
+/* Badges */
 .badge {{
     display: inline-block; padding: 4px 11px; border-radius: 20px;
     font-size: 10px; font-weight: 700; letter-spacing: 1px;
@@ -191,6 +216,7 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     border: 1px solid rgba(196,18,48,0.2); animation: blink 1.5s ease infinite;
 }}
 
+/* Log card */
 .log-card {{
     background: {BG2}; border: 1px solid {BORDER}; border-radius: 8px;
     padding: 14px 16px; font-family: 'JetBrains Mono', monospace !important;
@@ -200,6 +226,7 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
 .log-entry-add    {{ color: {BEIGE} !important;      font-family: 'JetBrains Mono', monospace !important; }}
 .log-entry-cal    {{ color: {TEXT_DIMMER} !important; font-family: 'JetBrains Mono', monospace !important; }}
 
+/* Section headers */
 .section-header {{
     font-size: 10px !important; font-weight: 700 !important;
     letter-spacing: 2.5px !important; text-transform: uppercase !important;
@@ -207,6 +234,7 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     padding-bottom: 8px !important; margin-bottom: 16px !important;
 }}
 
+/* Buttons */
 button, .stButton > button,
 [data-testid="baseButton-primary"],
 [data-testid="baseButton-secondary"],
@@ -226,23 +254,33 @@ button:hover, .stButton > button:hover,
     background-color: {BG2} !important;
     box-shadow: 0 0 10px rgba(196,18,48,0.12) !important;
 }}
+
+/* Theme pill */
 .theme-btn > button {{
     background: transparent !important; border: 1px solid {BORDER} !important;
     color: {BEIGE} !important; font-size: 12px !important;
     padding: 6px 14px !important; border-radius: 20px !important;
-    letter-spacing: 0.5px !important;
 }}
 .theme-btn > button:hover {{
     border-color: {RED} !important; color: {RED_BRIGHT} !important;
     background: transparent !important; box-shadow: none !important;
 }}
 
-.stSlider > div > div > div > div {{ background-color: {RED} !important; }}
-.stSlider label {{ color: {TEXT_DIM} !important; font-size: 12px !important; }}
-.stRadio > label {{ color: {TEXT_DIM} !important; font-size: 11px !important; }}
-.stRadio [data-testid="stMarkdownContainer"] p {{
-    color: {TEXT} !important; font-size: 13px !important;
+/* Selectbox */
+[data-testid="stSelectbox"] > div > div {{
+    background-color: {BG3} !important;
+    border: 1px solid {BORDER} !important;
+    border-radius: 6px !important;
+    color: {BEIGE} !important;
+    font-size: 12px !important;
 }}
+[data-testid="stSelectbox"] label {{ color: {TEXT_DIM} !important; font-size: 11px !important; }}
+
+/* Slider */
+.stSlider > div > div > div > div {{ background-color: {RED} !important; }}
+.stSlider label {{ color: {TEXT_DIM} !important; font-size: 11px !important; }}
+
+/* File uploader */
 [data-testid="stFileUploader"] {{
     background: {BG2} !important; border: 1px dashed {BORDER} !important;
     border-radius: 8px !important;
@@ -251,14 +289,10 @@ button:hover, .stButton > button:hover,
 [data-testid="stFileUploader"] p {{
     color: {TEXT_DIM} !important; font-size: 12px !important;
 }}
-[data-testid="stMetric"] {{ display: none; }}
-[data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span,
-[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] div {{
-    color: {TEXT_DIM} !important; font-size: 12px !important;
-}}
 
+[data-testid="stMetric"] {{ display: none; }}
+
+/* Footer */
 .footer {{
     margin-top: 48px; padding: 18px 0 8px 0;
     border-top: 1px solid {BORDER}; display: flex;
@@ -321,7 +355,7 @@ if not st.session_state.show_app:
 def get_model():
     return YOLO('lidDetection.pt')
 
-model     = get_model()
+model             = get_model()
 BUFFER_SIZE       = 15
 CONFIRM_THRESHOLD = 8
 
@@ -333,16 +367,10 @@ RTC_CONFIG = RTCConfiguration({
 })
 
 
-# ── Shared counting logic (pure function, no locks needed) ─
+# ── Pure counting logic ───────────────────────────────────
 def _apply_logic(cv, hc, mem, baseline, calibrated,
                  hand_was, hand_is, count_at, confirm,
                  total_inv, log):
-    """
-    cv          = current_visible (int)
-    hc          = hand_contact (bool)
-    Returns updated tuple of all state fields.
-    """
-    # Only update memory when hand is not in frame
     if not hc:
         mem.append(cv)
         if len(mem) > BUFFER_SIZE:
@@ -353,7 +381,6 @@ def _apply_logic(cv, hc, mem, baseline, calibrated,
 
     stable = max(set(mem), key=mem.count)
 
-    # Calibrate
     if not calibrated:
         if len(mem) == BUFFER_SIZE:
             baseline   = stable
@@ -372,9 +399,9 @@ def _apply_logic(cv, hc, mem, baseline, calibrated,
 
     # Hand just touched
     if hc and not hand_was:
-        hand_is   = True
-        count_at  = baseline
-        confirm   = 0
+        hand_is  = True
+        count_at = baseline
+        confirm  = 0
 
     # Hand just left
     if not hc and hand_was:
@@ -398,54 +425,41 @@ def _apply_logic(cv, hc, mem, baseline, calibrated,
             hand_is = False
             confirm = 0
 
-    # Update baseline when fully clear
     if not hc and not hand_is:
         baseline = stable
 
     hand_was = hc
-
     return mem, baseline, calibrated, hand_was, hand_is, count_at, confirm, total_inv, log
 
 
 # ── WebRTC processor ──────────────────────────────────────
 class LidDetector(VideoProcessorBase):
-    """
-    All logic runs inside recv() at full camera framerate.
-    Private _ fields are only touched by recv() thread.
-    Public display fields are protected by a lock for main thread reads.
-    """
-
     def __init__(self):
-        self.conf = 0.5
-
-        # Private logic state — recv() thread only, no locking needed
-        self._mem        = []
-        self._baseline   = 0
-        self._cal        = False
-        self._hand_was   = False
-        self._hand_is    = False
-        self._count_at   = 0
-        self._confirm    = 0
-        self._total      = 0
-        self._log        = []
-
-        # Public display state — protected by lock
-        self._lock       = threading.Lock()
-        self._d_total    = 0
-        self._d_log      = []
-        self._d_cal      = False
+        self.conf      = 0.5
+        self._mem      = []
+        self._baseline = 0
+        self._cal      = False
+        self._hand_was = False
+        self._hand_is  = False
+        self._count_at = 0
+        self._confirm  = 0
+        self._total    = 0
+        self._log      = []
+        self._lock     = threading.Lock()
+        self._d_total  = 0
+        self._d_log    = []
+        self._d_cal    = False
 
     def reset(self):
-        # Safe to call from main thread — resets both sets
-        self._mem        = []
-        self._baseline   = 0
-        self._cal        = False
-        self._hand_was   = False
-        self._hand_is    = False
-        self._count_at   = 0
-        self._confirm    = 0
-        self._total      = 0
-        self._log        = []
+        self._mem      = []
+        self._baseline = 0
+        self._cal      = False
+        self._hand_was = False
+        self._hand_is  = False
+        self._count_at = 0
+        self._confirm  = 0
+        self._total    = 0
+        self._log      = []
         with self._lock:
             self._d_total = 0
             self._d_log   = []
@@ -470,13 +484,12 @@ class LidDetector(VideoProcessorBase):
                 cv2.putText(img, label, (x1, y1-6),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-        cv_count  = len(lids)
+        cv_count     = len(lids)
         hand_contact = any(
             not (h[2]<l[0] or h[0]>l[2] or h[3]<l[1] or h[1]>l[3])
             for h in hands for l in lids
         )
 
-        # Run logic — all on recv() thread, no lock needed here
         (self._mem, self._baseline, self._cal,
          self._hand_was, self._hand_is, self._count_at,
          self._confirm, self._total, self._log) = _apply_logic(
@@ -486,13 +499,11 @@ class LidDetector(VideoProcessorBase):
             self._confirm, self._total, self._log
         )
 
-        # Copy to display state under lock (very brief)
         with self._lock:
             self._d_total = self._total
             self._d_log   = list(self._log)
             self._d_cal   = self._cal
 
-        # Overlay count on video
         overlay = f"INV: {self._total}" if self._cal else "Calibrating..."
         cv2.putText(img, overlay, (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 200), 2)
@@ -504,18 +515,13 @@ class LidDetector(VideoProcessorBase):
             return self._d_total, list(self._d_log), self._d_cal
 
 
-# ── Shared logic state for demo/upload (plain dict) ───────
+# ── State for demo/upload ─────────────────────────────────
 def make_state():
     return {
-        "mem":       [],
-        "baseline":  0,
-        "cal":       False,
-        "hand_was":  False,
-        "hand_is":   False,
-        "count_at":  0,
-        "confirm":   0,
-        "total_inv": 0,
-        "log":       [],
+        "mem": [], "baseline": 0, "cal": False,
+        "hand_was": False, "hand_is": False,
+        "count_at": 0, "confirm": 0,
+        "total_inv": 0, "log": [],
     }
 
 def run_logic_dict(cv_count, hand_contact, s):
@@ -574,7 +580,7 @@ def render_log(log):
     )
 
 
-# ── Video loop (demo + upload) ────────────────────────────
+# ── Video loop ────────────────────────────────────────────
 def process_video_loop(cap, frame_window, s, conf):
     frame_count = 0
     last_hands, last_lids = [], []
@@ -589,7 +595,6 @@ def process_video_loop(cap, frame_window, s, conf):
 
         frame_count += 1
 
-        # Inference every 3rd frame at 320px for speed
         if frame_count % 3 == 0:
             h, w   = frame.shape[:2]
             tw, th = 320, int(320 * h / w)
@@ -630,7 +635,7 @@ def process_video_loop(cap, frame_window, s, conf):
 
 
 # ── Header ────────────────────────────────────────────────
-hcol_logo, hcol_title, hcol_theme = st.columns([1, 7, 1])
+hcol_logo, hcol_title = st.columns([1, 8])
 
 with hcol_logo:
     if logo_b64:
@@ -653,40 +658,72 @@ with hcol_title:
         </div>
     """, unsafe_allow_html=True)
 
-with hcol_theme:
-    st.markdown("<div style='padding-top:12px'></div>", unsafe_allow_html=True)
+st.markdown(
+    f"<div style='height:1px;"
+    f"background:linear-gradient(90deg,transparent,{RED},transparent);"
+    f"margin:14px 0 18px 0'></div>",
+    unsafe_allow_html=True
+)
+
+# ── Controls bar ──────────────────────────────────────────
+ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([3, 2, 1, 1])
+
+with ctrl1:
+    st.markdown(
+        f"<div class='ctrl-label'>Detection Confidence</div>",
+        unsafe_allow_html=True
+    )
+    conf_threshold = st.slider(
+        "conf", 0.3, 0.9, 0.5,
+        label_visibility="collapsed"
+    )
+
+with ctrl2:
+    st.markdown(
+        f"<div class='ctrl-label'>Input Mode</div>",
+        unsafe_allow_html=True
+    )
+    mode = st.selectbox(
+        "mode",
+        ["Live Camera (WebRTC)", "Demo Video", "Upload Video"],
+        label_visibility="collapsed"
+    )
+
+with ctrl3:
+    st.markdown(
+        f"<div class='ctrl-label'>&nbsp;</div>",
+        unsafe_allow_html=True
+    )
+    reset_btn = st.button("⟳  Reset", use_container_width=True)
+
+with ctrl4:
+    st.markdown(
+        f"<div class='ctrl-label'>&nbsp;</div>",
+        unsafe_allow_html=True
+    )
     st.markdown("<div class='theme-btn'>", unsafe_allow_html=True)
-    if st.button("☀ Light" if dark else "☾ Dark", key="theme_toggle"):
+    if st.button(
+        "☀ Light" if dark else "☾ Dark",
+        key="theme_toggle",
+        use_container_width=True
+    ):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
     f"<div style='height:1px;"
-    f"background:linear-gradient(90deg,transparent,{RED},transparent);"
-    f"margin:14px 0 22px 0'></div>",
+    f"background:linear-gradient(90deg,transparent,{BORDER},transparent);"
+    f"margin:4px 0 22px 0'></div>",
     unsafe_allow_html=True
-)
-
-# ── Sidebar ───────────────────────────────────────────────
-st.sidebar.markdown(
-    f"<p style='font-size:10px;font-weight:700;letter-spacing:2.5px;"
-    f"text-transform:uppercase;color:{RED};border-bottom:1px solid {BORDER};"
-    f"padding-bottom:8px;margin-bottom:16px;margin-top:8px'>System Control</p>",
-    unsafe_allow_html=True
-)
-conf_threshold = st.sidebar.slider("Detection Confidence", 0.3, 0.9, 0.5)
-reset_btn      = st.sidebar.button("⟳  Hard Reset")
-mode           = st.sidebar.radio(
-    "Input Mode",
-    ["Live Camera (WebRTC)", "Demo Video", "Upload Video"]
 )
 
 # ── Main layout ───────────────────────────────────────────
 col1, col2 = st.columns([2, 1])
 
 with col2:
-    st.markdown("<div class='section-header'>Metrics</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>Metrics</div>",
+                unsafe_allow_html=True)
     metric_placeholder = st.empty()
     st.markdown(
         "<div class='section-header' style='margin-top:20px'>Event Log</div>",
@@ -697,7 +734,8 @@ with col2:
     render_log([])
 
 with col1:
-    st.markdown("<div class='section-header'>Camera Feed</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>Camera Feed</div>",
+                unsafe_allow_html=True)
 
     # ── Live Camera ──────────────────────────────────────
     if mode == "Live Camera (WebRTC)":
@@ -813,7 +851,8 @@ with col1:
 
             if st.session_state.get('upload_running', False):
                 process_video_loop(
-                    st.session_state.upload_cap, frame_window_up, s_upload, conf_threshold
+                    st.session_state.upload_cap,
+                    frame_window_up, s_upload, conf_threshold
                 )
             else:
                 render_metrics(s_upload["total_inv"], s_upload["cal"])
