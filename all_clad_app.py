@@ -73,17 +73,19 @@ button, input, select, textarea, p, span, div, a, label {{
 .main, [data-testid="stAppViewContainer"] {{
     background-color: {BG} !important;
 }}
-
-/* Hide sidebar and its toggle completely */
 [data-testid="stSidebar"],
 [data-testid="collapsedControl"] {{
     display: none !important;
 }}
-
 p, span, label, .stMarkdown,
 [data-testid="stText"],
 [data-testid="stMarkdownContainer"] p {{ color: {TEXT} !important; }}
 h1, h2, h3 {{ color: {TEXT} !important; }}
+
+/* Remove default Streamlit top padding */
+.main .block-container {{
+    padding-top: 1.5rem !important;
+}}
 
 @keyframes pulse-red {{
     0%   {{ box-shadow: 0 0 0 0 rgba(196,18,48,0.5); }}
@@ -146,24 +148,74 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     display: block; margin-top: 4px; margin-bottom: 32px;
 }}
 
-/* Controls bar */
-.controls-bar {{
-    background: {BG2};
-    border: 1px solid {BORDER};
-    border-radius: 10px;
-    padding: 14px 20px;
-    margin-bottom: 22px;
+/* Header title block */
+.header-block {{
     display: flex;
-    align-items: center;
-    gap: 16px;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 6px;
 }}
+.header-title {{
+    font-family: 'Playfair Display', serif !important;
+    font-size: 26px;
+    font-weight: 500;
+    color: {TEXT};
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}}
+.header-sub {{
+    font-size: 10px;
+    color: {TEXT_DIMMER};
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+}}
+.header-sub span {{
+    color: {RED} !important;
+}}
+
+/* Controls bar */
 .ctrl-label {{
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 2px;
+    font-weight: 600;
+    letter-spacing: 1.8px;
     text-transform: uppercase;
-    color: {TEXT_DIM};
-    margin-bottom: 4px;
+    color: {TEXT_DIMMER};
+    margin-bottom: 5px;
+}}
+
+/* Mode tabs — radio styled as pills */
+.stRadio > div {{
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    flex-wrap: wrap;
+}}
+.stRadio > div > label {{
+    background: {BG3} !important;
+    border: 1px solid {BORDER} !important;
+    border-radius: 20px !important;
+    padding: 5px 14px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: {TEXT_DIM} !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    white-space: nowrap !important;
+}}
+.stRadio > div > label:hover {{
+    border-color: {RED} !important;
+    color: {RED_BRIGHT} !important;
+}}
+.stRadio > div > label[data-baseweb="radio"] > div:first-child {{
+    display: none !important;
+}}
+/* Selected pill */
+.stRadio > div > label[data-checked="true"],
+.stRadio > div > label[aria-checked="true"] {{
+    background: rgba(196,18,48,0.1) !important;
+    border-color: {RED} !important;
+    color: {RED_BRIGHT} !important;
 }}
 
 /* Metric card */
@@ -258,23 +310,14 @@ button:hover, .stButton > button:hover,
 /* Theme pill */
 .theme-btn > button {{
     background: transparent !important; border: 1px solid {BORDER} !important;
-    color: {BEIGE} !important; font-size: 12px !important;
-    padding: 6px 14px !important; border-radius: 20px !important;
+    color: {TEXT_DIM} !important; font-size: 11px !important;
+    padding: 5px 12px !important; border-radius: 20px !important;
+    letter-spacing: 0.3px !important;
 }}
 .theme-btn > button:hover {{
     border-color: {RED} !important; color: {RED_BRIGHT} !important;
     background: transparent !important; box-shadow: none !important;
 }}
-
-/* Selectbox */
-[data-testid="stSelectbox"] > div > div {{
-    background-color: {BG3} !important;
-    border: 1px solid {BORDER} !important;
-    border-radius: 6px !important;
-    color: {BEIGE} !important;
-    font-size: 12px !important;
-}}
-[data-testid="stSelectbox"] label {{ color: {TEXT_DIM} !important; font-size: 11px !important; }}
 
 /* Slider */
 .stSlider > div > div > div > div {{ background-color: {RED} !important; }}
@@ -294,13 +337,17 @@ button:hover, .stButton > button:hover,
 
 /* Footer */
 .footer {{
-    margin-top: 48px; padding: 18px 0 8px 0;
+    margin-top: 48px; padding: 20px 0 10px 0;
     border-top: 1px solid {BORDER}; display: flex;
     justify-content: space-between; align-items: center;
     flex-wrap: wrap; gap: 10px;
 }}
-.footer-left  {{ font-size: 12px; color: {TEXT_DIMMER}; }}
+.footer-left  {{ font-size: 12px; color: {TEXT_DIMMER}; line-height: 1.8; }}
 .footer-left strong {{ color: {TEXT_DIM}; font-weight: 600; }}
+.footer-left .partnership {{
+    font-size: 10px; color: {TEXT_DIMMER}; letter-spacing: 0.5px;
+    display: block; margin-top: 2px;
+}}
 .footer-right {{ font-size: 10px; color: {TEXT_DIMMER}; letter-spacing: 2px; text-transform: uppercase; }}
 .footer a       {{ color: {RED} !important; text-decoration: none; }}
 .footer a:hover {{ color: {RED_BRIGHT} !important; }}
@@ -335,7 +382,7 @@ if not st.session_state.show_app:
             {logo_html}
             <div class="welcome-eyebrow">All-Clad &nbsp;·&nbsp; 2026</div>
             <div class="welcome-title">Lid Inventory<br>Tracking System</div>
-            <div class="welcome-sub">Object Detection &nbsp;·&nbsp; Lid Totes</div>
+            <div class="welcome-sub">AI Object Detection &nbsp;·&nbsp; Lid Totes</div>
             <div class="welcome-divider"></div>
             <div class="welcome-hint">Click to enter</div>
             <span class="welcome-arrow">↓</span>
@@ -390,24 +437,20 @@ def _apply_logic(cv, hc, mem, baseline, calibrated,
             log = log[:20]
         return mem, baseline, calibrated, hand_was, hand_is, count_at, confirm, total_inv, log
 
-    # Stack added from empty
     if not hc and stable > baseline and baseline == 0:
         total_inv += stable
         baseline   = stable
         log = [f"{time.strftime('%H:%M:%S')}  Stack Added (+{stable})"] + log
         log = log[:20]
 
-    # Hand just touched
     if hc and not hand_was:
         hand_is  = True
         count_at = baseline
         confirm  = 0
 
-    # Hand just left
     if not hc and hand_was:
         confirm = 0
 
-    # Confirmation window
     if not hc and hand_is:
         if cv < count_at:
             confirm += 1
@@ -635,86 +678,69 @@ def process_video_loop(cap, frame_window, s, conf):
 
 
 # ── Header ────────────────────────────────────────────────
-hcol_logo, hcol_title = st.columns([1, 8])
+hcol_logo, hcol_title, hcol_theme = st.columns([1, 7, 1])
 
 with hcol_logo:
     if logo_b64:
         st.markdown(
             f"<img src='data:image/png;base64,{logo_b64}' "
-            f"style='width:64px;margin-top:8px;'/>",
+            f"style='width:64px;margin-top:6px;'/>",
             unsafe_allow_html=True
         )
 
 with hcol_title:
     st.markdown(f"""
-        <div style='padding-top:10px'>
-            <div style='font-size:21px;font-weight:700;color:{TEXT};letter-spacing:0.5px'>
-                All-Clad Lid Inventory
-            </div>
-            <div style='font-size:11px;color:{TEXT_DIMMER};letter-spacing:2px;
-                        text-transform:uppercase;margin-top:4px'>
-                AI Object Detection &nbsp;·&nbsp; Lid Tote
+        <div class='header-block'>
+            <div class='header-title'>Lid Inventory Tracking</div>
+            <div class='header-sub'>
+                AI Object Detection &nbsp;<span>·</span>&nbsp; Lid Totes
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-st.markdown(
-    f"<div style='height:1px;"
-    f"background:linear-gradient(90deg,transparent,{RED},transparent);"
-    f"margin:14px 0 18px 0'></div>",
-    unsafe_allow_html=True
-)
-
-# ── Controls bar ──────────────────────────────────────────
-ctrl1, ctrl2, ctrl3, ctrl4 = st.columns([3, 2, 1, 1])
-
-with ctrl1:
-    st.markdown(
-        f"<div class='ctrl-label'>Detection Confidence</div>",
-        unsafe_allow_html=True
-    )
-    conf_threshold = st.slider(
-        "conf", 0.3, 0.9, 0.5,
-        label_visibility="collapsed"
-    )
-
-with ctrl2:
-    st.markdown(
-        f"<div class='ctrl-label'>Input Mode</div>",
-        unsafe_allow_html=True
-    )
-    mode = st.selectbox(
-        "mode",
-        ["Live Camera (WebRTC)", "Demo Video", "Upload Video"],
-        label_visibility="collapsed"
-    )
-
-with ctrl3:
-    st.markdown(
-        f"<div class='ctrl-label'>&nbsp;</div>",
-        unsafe_allow_html=True
-    )
-    reset_btn = st.button("⟳  Reset", use_container_width=True)
-
-with ctrl4:
-    st.markdown(
-        f"<div class='ctrl-label'>&nbsp;</div>",
-        unsafe_allow_html=True
-    )
+with hcol_theme:
+    st.markdown("<div style='padding-top:10px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='theme-btn'>", unsafe_allow_html=True)
-    if st.button(
-        "☀ Light" if dark else "☾ Dark",
-        key="theme_toggle",
-        use_container_width=True
-    ):
+    if st.button("☀" if dark else "☾", key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
     f"<div style='height:1px;"
+    f"background:linear-gradient(90deg,transparent,{RED},transparent);"
+    f"margin:12px 0 16px 0'></div>",
+    unsafe_allow_html=True
+)
+
+# ── Controls bar ──────────────────────────────────────────
+ctrl1, ctrl2, ctrl3 = st.columns([3, 4, 1])
+
+with ctrl1:
+    st.markdown("<div class='ctrl-label'>Detection Confidence</div>",
+                unsafe_allow_html=True)
+    conf_threshold = st.slider(
+        "conf", 0.3, 0.9, 0.5, label_visibility="collapsed"
+    )
+
+with ctrl2:
+    st.markdown("<div class='ctrl-label'>Input Mode</div>",
+                unsafe_allow_html=True)
+    mode = st.radio(
+        "mode",
+        ["Live Camera (WebRTC)", "Demo Video", "Upload Video"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+
+with ctrl3:
+    st.markdown("<div class='ctrl-label'>&nbsp;</div>", unsafe_allow_html=True)
+    reset_btn = st.button("⟳  Reset", use_container_width=True)
+
+st.markdown(
+    f"<div style='height:1px;"
     f"background:linear-gradient(90deg,transparent,{BORDER},transparent);"
-    f"margin:4px 0 22px 0'></div>",
+    f"margin:4px 0 20px 0'></div>",
     unsafe_allow_html=True
 )
 
@@ -881,7 +907,10 @@ st.markdown(f"""
             &nbsp;·&nbsp;
             <a href='https://github.com/aniwhy/all-CLAD26-ASY-LidCounter/tree/main'
                target='_blank'>GitHub ↗</a>
+            <span class='partnership'>
+                All-Clad in Partnership with South Fayette High School
+            </span>
         </div>
-        <div class='footer-right'>All-Clad · 2026</div>
+        <div class='footer-right'>2026</div>
     </div>
 """, unsafe_allow_html=True)
