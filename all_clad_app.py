@@ -335,7 +335,7 @@ if not st.session_state.show_app:
             {logo_html}
             <div class="welcome-eyebrow">All-Clad &nbsp;·&nbsp; 2026</div>
             <div class="welcome-title">Lid Inventory<br>Tracking System</div>
-            <div class="welcome-sub">Computer Vision &nbsp;·&nbsp; Production Line 1</div>
+            <div class="welcome-sub">Object Detection &nbsp;·&nbsp; Lid Totes</div>
             <div class="welcome-divider"></div>
             <div class="welcome-hint">Click to enter</div>
             <span class="welcome-arrow">↓</span>
@@ -653,7 +653,7 @@ with hcol_title:
             </div>
             <div style='font-size:11px;color:{TEXT_DIMMER};letter-spacing:2px;
                         text-transform:uppercase;margin-top:4px'>
-                Computer Vision Tracking &nbsp;·&nbsp; Production Line 1
+                AI Object Detection &nbsp;·&nbsp; Lid Tote
             </div>
         </div>
     """, unsafe_allow_html=True)
