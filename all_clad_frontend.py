@@ -81,11 +81,7 @@ p, span, label, .stMarkdown,
 [data-testid="stText"],
 [data-testid="stMarkdownContainer"] p {{ color: {TEXT} !important; }}
 h1, h2, h3 {{ color: {TEXT} !important; }}
-
-/* Remove default Streamlit top padding */
-.main .block-container {{
-    padding-top: 1.5rem !important;
-}}
+.main .block-container {{ padding-top: 1.5rem !important; }}
 
 @keyframes pulse-red {{
     0%   {{ box-shadow: 0 0 0 0 rgba(196,18,48,0.5); }}
@@ -113,7 +109,6 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     50%       {{ transform: translateY(9px); opacity: 1;   }}
 }}
 
-/* Welcome */
 .welcome-wrap {{
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; min-height: 92vh;
@@ -148,77 +143,49 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     display: block; margin-top: 4px; margin-bottom: 32px;
 }}
 
-/* Header title block */
 .header-block {{
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-top: 6px;
+    display: flex; flex-direction: column;
+    justify-content: center; padding-top: 6px;
 }}
 .header-title {{
     font-family: 'Playfair Display', serif !important;
-    font-size: 26px;
-    font-weight: 500;
-    color: {TEXT};
-    letter-spacing: 0.3px;
-    line-height: 1.2;
-    margin-bottom: 4px;
+    font-size: 26px; font-weight: 500; color: {TEXT};
+    letter-spacing: 0.3px; line-height: 1.2; margin-bottom: 4px;
 }}
 .header-sub {{
-    font-size: 10px;
-    color: {TEXT_DIMMER};
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
+    font-size: 10px; color: {TEXT_DIMMER};
+    letter-spacing: 2.5px; text-transform: uppercase;
 }}
-.header-sub span {{
-    color: {RED} !important;
-}}
+.header-sub span {{ color: {RED} !important; }}
 
-/* Controls bar */
 .ctrl-label {{
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.8px;
-    text-transform: uppercase;
-    color: {TEXT_DIMMER};
-    margin-bottom: 5px;
+    font-size: 10px; font-weight: 600; letter-spacing: 1.8px;
+    text-transform: uppercase; color: {TEXT_DIMMER}; margin-bottom: 5px;
 }}
 
-/* Mode tabs — radio styled as pills */
 .stRadio > div {{
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 8px !important;
-    flex-wrap: wrap;
+    display: flex !important; flex-direction: row !important;
+    gap: 8px !important; flex-wrap: wrap;
 }}
 .stRadio > div > label {{
-    background: {BG3} !important;
-    border: 1px solid {BORDER} !important;
-    border-radius: 20px !important;
-    padding: 5px 14px !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-    color: {TEXT_DIM} !important;
-    cursor: pointer !important;
-    transition: all 0.2s !important;
-    white-space: nowrap !important;
+    background: {BG3} !important; border: 1px solid {BORDER} !important;
+    border-radius: 20px !important; padding: 5px 14px !important;
+    font-size: 11px !important; font-weight: 500 !important;
+    color: {TEXT_DIM} !important; cursor: pointer !important;
+    transition: all 0.2s !important; white-space: nowrap !important;
 }}
 .stRadio > div > label:hover {{
-    border-color: {RED} !important;
-    color: {RED_BRIGHT} !important;
+    border-color: {RED} !important; color: {RED_BRIGHT} !important;
 }}
 .stRadio > div > label[data-baseweb="radio"] > div:first-child {{
     display: none !important;
 }}
-/* Selected pill */
 .stRadio > div > label[data-checked="true"],
 .stRadio > div > label[aria-checked="true"] {{
     background: rgba(196,18,48,0.1) !important;
-    border-color: {RED} !important;
-    color: {RED_BRIGHT} !important;
+    border-color: {RED} !important; color: {RED_BRIGHT} !important;
 }}
 
-/* Metric card */
 .metric-card {{
     background: {BG3}; border: 1px solid {BORDER};
     border-radius: 10px; padding: 22px 24px; margin-bottom: 12px;
@@ -245,7 +212,6 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     margin-top: 6px !important; letter-spacing: 1px !important;
 }}
 
-/* Badges */
 .badge {{
     display: inline-block; padding: 4px 11px; border-radius: 20px;
     font-size: 10px; font-weight: 700; letter-spacing: 1px;
@@ -268,7 +234,6 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     border: 1px solid rgba(196,18,48,0.2); animation: blink 1.5s ease infinite;
 }}
 
-/* Log card */
 .log-card {{
     background: {BG2}; border: 1px solid {BORDER}; border-radius: 8px;
     padding: 14px 16px; font-family: 'JetBrains Mono', monospace !important;
@@ -278,7 +243,6 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
 .log-entry-add    {{ color: {BEIGE} !important;      font-family: 'JetBrains Mono', monospace !important; }}
 .log-entry-cal    {{ color: {TEXT_DIMMER} !important; font-family: 'JetBrains Mono', monospace !important; }}
 
-/* Section headers */
 .section-header {{
     font-size: 10px !important; font-weight: 700 !important;
     letter-spacing: 2.5px !important; text-transform: uppercase !important;
@@ -286,7 +250,6 @@ h1, h2, h3 {{ color: {TEXT} !important; }}
     padding-bottom: 8px !important; margin-bottom: 16px !important;
 }}
 
-/* Buttons */
 button, .stButton > button,
 [data-testid="baseButton-primary"],
 [data-testid="baseButton-secondary"],
@@ -307,7 +270,6 @@ button:hover, .stButton > button:hover,
     box-shadow: 0 0 10px rgba(196,18,48,0.12) !important;
 }}
 
-/* Theme pill */
 .theme-btn > button {{
     background: transparent !important; border: 1px solid {BORDER} !important;
     color: {TEXT_DIM} !important; font-size: 11px !important;
@@ -319,11 +281,9 @@ button:hover, .stButton > button:hover,
     background: transparent !important; box-shadow: none !important;
 }}
 
-/* Slider */
 .stSlider > div > div > div > div {{ background-color: {RED} !important; }}
 .stSlider label {{ color: {TEXT_DIM} !important; font-size: 11px !important; }}
 
-/* File uploader */
 [data-testid="stFileUploader"] {{
     background: {BG2} !important; border: 1px dashed {BORDER} !important;
     border-radius: 8px !important;
@@ -335,7 +295,6 @@ button:hover, .stButton > button:hover,
 
 [data-testid="stMetric"] {{ display: none; }}
 
-/* Footer */
 .footer {{
     margin-top: 48px; padding: 20px 0 10px 0;
     border-top: 1px solid {BORDER}; display: flex;
@@ -403,7 +362,7 @@ def get_model():
     return YOLO('lidDetection.pt')
 
 model             = get_model()
-BUFFER_SIZE       = 15
+BUFFER_SIZE       = 30   # ← increased for stable calibration
 CONFIRM_THRESHOLD = 8
 
 RTC_CONFIG = RTCConfiguration({
@@ -428,29 +387,37 @@ def _apply_logic(cv, hc, mem, baseline, calibrated,
 
     stable = max(set(mem), key=mem.count)
 
+    # ── Calibrate using max(mem) not mode ──────────────────
+    # max(mem) = highest count seen = true count
+    # mode gets dragged down by partial-detection warmup frames
     if not calibrated:
         if len(mem) == BUFFER_SIZE:
-            baseline   = stable
-            total_inv  = stable
+            cal_count  = max(mem)
+            baseline   = cal_count
+            total_inv  = cal_count
             calibrated = True
-            log = [f"{time.strftime('%H:%M:%S')}  Calibrated — {stable} lids"] + log
+            log = [f"{time.strftime('%H:%M:%S')}  Calibrated — {cal_count} lids"] + log
             log = log[:20]
         return mem, baseline, calibrated, hand_was, hand_is, count_at, confirm, total_inv, log
 
+    # Stack added from empty
     if not hc and stable > baseline and baseline == 0:
         total_inv += stable
         baseline   = stable
         log = [f"{time.strftime('%H:%M:%S')}  Stack Added (+{stable})"] + log
         log = log[:20]
 
+    # Hand just touched
     if hc and not hand_was:
         hand_is  = True
         count_at = baseline
         confirm  = 0
 
+    # Hand just left
     if not hc and hand_was:
         confirm = 0
 
+    # Confirmation window
     if not hc and hand_is:
         if cv < count_at:
             confirm += 1
@@ -625,8 +592,9 @@ def render_log(log):
 
 # ── Video loop ────────────────────────────────────────────
 def process_video_loop(cap, frame_window, s, conf):
-    frame_count = 0
-    last_hands, last_lids = [], []
+    frame_count  = 0
+    last_hands   = []
+    last_lids    = []
 
     while True:
         ret, frame = cap.read()
@@ -637,8 +605,10 @@ def process_video_loop(cap, frame_window, s, conf):
             break
 
         frame_count += 1
+        run_this_frame = (frame_count % 3 == 0)
 
-        if frame_count % 3 == 0:
+        # ── Run inference only every 3rd frame ──
+        if run_this_frame:
             h, w   = frame.shape[:2]
             tw, th = 320, int(320 * h / w)
             small  = cv2.resize(frame, (tw, th))
@@ -655,6 +625,7 @@ def process_video_loop(cap, frame_window, s, conf):
                     else:
                         last_lids.append(scaled)
 
+        # Draw boxes on every frame for smooth visuals
         for c in last_hands:
             x1,y1,x2,y2 = map(int, c)
             cv2.rectangle(frame,(x1,y1),(x2,y2),(160,140,100),2)
@@ -670,7 +641,11 @@ def process_video_loop(cap, frame_window, s, conf):
             not (h[2]<l[0] or h[0]>l[2] or h[3]<l[1] or h[1]>l[3])
             for h in last_hands for l in last_lids
         )
-        run_logic_dict(len(last_lids), hand_contact, s)
+
+        # ── Only feed logic on inference frames ──
+        if run_this_frame:
+            run_logic_dict(len(last_lids), hand_contact, s)
+
         frame_window.image(frame, channels="BGR", width='stretch')
         render_metrics(s["total_inv"], s["cal"])
         render_log(s["log"])
