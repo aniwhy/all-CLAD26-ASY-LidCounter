@@ -11,7 +11,7 @@ Speed: 80ms–120ms latency (Real-time edge processing)<br/>
 Target Classes: lid_handle, hand<br/>
 
 Logic Used:<br/>
-  15-frame stability buffer to ensure model doesn't use "ghost," or false detections<br/>
+  Frame-by-frame stability buffer to ensure model doesn't use "ghost," or false detections<br/>
   Automatically detects stacks of lids and efficiently counts them as one batch<br/>
   Subtraction logic uses hand detection to alter the count to ensure lid grabbing doesn't throw off count<br/>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
