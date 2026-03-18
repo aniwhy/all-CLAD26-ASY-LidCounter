@@ -15,10 +15,7 @@ Logic Used:<br/>
   Automatically detects stacks of lids and efficiently counts them as one batch<br/>
   Subtraction logic uses hand detection to alter the count to ensure lid grabbing doesn't throw off count<br/>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Install Dependencies (ensure Python library is installed):
-  pip install -r requirements.txt
-Frontend:
-  streamlit run all_clad_app.py
+Project Link: https://asy-allclad-lidcounter.streamlit.app/
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Controls:<br/>
 [p] to pause program<br/>
