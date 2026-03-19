@@ -2,160 +2,253 @@ import cv2
 from ultralytics import YOLO
 import threading
 import time
-from collections import deque
 
 # Anirudh Yuvaraj, Jonathan Philip
 # All-CLAD Project, 2026
+# Production-Grade Inventory System (V8.0)
 
-# Load the custom-trained 99% mAP model
 model = YOLO('lidDetection.pt')
+print(f"[MODEL] Classes: {model.names}")
 
-# --- Logic Configuration ---
+# --- Configuration ---
+HOLD_CONFIRM = 8     # frames hand+lid_handle must overlap to confirm grab
+GONE_CONFIRM = 10    # frames hand must be gone before committing event
+CONF_THRESH  = 0.55  # high threshold to suppress printed-diagram false positives
+
+# --- Persistent inventory ---
 total_inventory = 0
-BUFFER_SIZE = 15      # Frames of stability required
-PICK_CONFIDENCE = 10  # Frames a lid must be missing while hand-held to count as -1
-STACK_SIZE = 5        # Standard box size
 
-# --- State Tracking ---
-lid_memory = deque(maxlen=BUFFER_SIZE)
-hand_touching_active = False
-calibrated = False
-missing_count = 0
+# --- State machine ---
+STATE_WATCHING = "WATCHING"
+STATE_HAND_IN  = "HAND_IN"
+STATE_HOLDING  = "HOLDING"
+STATE_LEAVING  = "LEAVING"
 
-is_paused = False
+state        = STATE_WATCHING
+hold_frames  = 0
+gone_frames  = 0
+hand_had_lid = False
+holding_lid  = False
+exit_has_lid = False
 
-def get_centroid(box):
-    x1, y1, x2, y2 = box
-    return ((x1 + x2) / 2, (y1 + y2) / 2)
+is_paused     = False
+display_frame = None
 
-def is_overlapping(box1, box2):
-    x1, y1, x2, y2 = box1
-    x3, y3, x4, y4 = box2
-    # Add a 10% "padding" to the overlap to make it more forgiving for fast hands
-    return not (x2 < x3 or x1 > x4 or y2 < y3 or y1 > y4)
+# Brief flash message for manual key actions
+flash_msg     = ""
+flash_until   = 0.0
+
+
+def boxes_overlap(b1, b2):
+    return not (b1[2] < b2[0] or b1[0] > b2[2] or
+                b1[3] < b2[1] or b1[1] > b2[3])
+
 
 class VideoStream:
     def __init__(self, url):
-        self.capture = cv2.VideoCapture(url)
-        self.capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        self.ret, self.frame = self.capture.read()
+        self.cap = cv2.VideoCapture(url)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.ret, self.frame = self.cap.read()
         self.stopped = False
 
     def start(self):
-        threading.Thread(target=self.update, args=(), daemon=True).start()
+        threading.Thread(target=self._update, daemon=True).start()
         return self
 
-    def update(self):
+    def _update(self):
         while not self.stopped:
-            self.ret, self.frame = self.capture.read()
+            self.ret, self.frame = self.cap.read()
 
     def read(self):
         return self.ret, self.frame
 
     def stop(self):
         self.stopped = True
-        self.capture.release()
+        self.cap.release()
 
-# Initialize Camera
+
+# School wifi: "http://192.168.137.18:4747/video"
 vs = VideoStream("http://192.168.0.52:4747/video").start()
 time.sleep(2.0)
+
+cv2.namedWindow("All-CLAD Lid Detection")
 
 while True:
     if not is_paused:
         ret, frame = vs.read()
-        if not ret or frame is None: break
+        if not ret or frame is None:
+            break
 
-        start_time = time.time()
-        # High-res inference for precision
-        results = model(frame, conf=0.5, imgsz=640, verbose=False)
-        inference_speed = (time.time() - start_time) * 1000
+        fh, fw = frame.shape[:2]
 
-        hands = []
-        lids = []
+        t0 = time.time()
+        results = model(frame, conf=CONF_THRESH, imgsz=640, verbose=False)
+        latency = (time.time() - t0) * 1000
 
+        hands, lids = [], []
         for r in results:
             for box in r.boxes:
                 coords = box.xyxy[0].tolist()
-                label = model.names[int(box.cls[0])]
-                if label == 'hand': hands.append(coords)
-                else: lids.append(coords)
-                
-                # Visual Feedback
+                label  = model.names[int(box.cls[0])]
+                conf   = float(box.conf[0])
+
+                if label == 'hand':
+                    hands.append(coords)
+                elif label == 'lid_handle':
+                    lids.append(coords)
+
                 x1, y1, x2, y2 = map(int, coords)
-                color = (255, 191, 0) if label == 'hand' else (0, 255, 127) # Modern UI colors
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 1)
-                cv2.putText(frame, label.upper(), (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
+                color = (255, 191, 0) if label == 'hand' else (0, 255, 127)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                cv2.putText(frame, f"{label} {conf:.2f}", (x1, y1 - 8),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
 
-        # --- PRODUCTION LOGIC ENGINE ---
-        current_visible = len(lids)
-        lid_memory.append(current_visible)
-        
-        # Calculate Mode (Most stable count in buffer)
-        stable_count = max(set(lid_memory), key=lid_memory.count)
+        hand_present   = len(hands) > 0
+        lid_present    = len(lids)  > 0
+        visible_count  = len(lids)
+        hand_holds_lid = hand_present and lid_present and any(
+            boxes_overlap(h, l) for h in hands for l in lids
+        )
 
-        # 1. AUTO-CALIBRATION
-        if not calibrated and len(lid_memory) == BUFFER_SIZE:
-            total_inventory = stable_count
-            calibrated = True
-            print(f"system ready!: {total_inventory} units")
+        # ── STATE MACHINE ──────────────────────────────────────────────────
 
-        # 2. STACK ARRIVAL (+5)
-        # Only triggers if 0 lids were present for a while, then stable lids appear
-        if calibrated and stable_count > 0 and last_stable_count == 0:
-            total_inventory += STACK_SIZE
-            print("stack added")
+        if state == STATE_WATCHING:
+            if hand_present:
+                hand_had_lid = lid_present
+                hold_frames  = 1
+                state        = STATE_HAND_IN
+                print(f"[HAND IN]  lid already visible: {hand_had_lid}")
 
-        # 3. PRECISION PICK (-1)
-        # Logic: If hand overlaps any lid, system is "ARMED"
-        hand_contact = any(is_overlapping(h, l) for h in hands for l in lids)
-        
-        if hand_contact:
-            hand_touching_active = True
-        
-        # If armed and count drops, increment missing counter
-        if hand_touching_active and current_visible < stable_count:
-            missing_count += 1
-        else:
-            # If hand moves away and count didn't drop, disarm
-            if not hand_contact:
-                hand_touching_active = False
-                missing_count = 0
+        elif state == STATE_HAND_IN:
+            if not hand_present:
+                state = STATE_WATCHING
+                print("[IGNORE]  hand left too fast")
+            else:
+                if hand_holds_lid:
+                    hold_frames += 1
+                if hold_frames >= HOLD_CONFIRM:
+                    holding_lid = hand_holds_lid
+                    state       = STATE_HOLDING
+                    print(f"[HOLDING]  lid confirmed in hand: {holding_lid}")
 
-        # Confirm Pick after PICK_CONFIDENCE frames (Prevents scuffed flickers)
-        if missing_count >= PICK_CONFIDENCE:
-            total_inventory -= 1
-            missing_count = 0
-            hand_touching_active = False
-            print(f"unit REMOVED! total count: {total_inventory}")
+        elif state == STATE_HOLDING:
+            if not hand_present:
+                exit_has_lid = lid_present
+                gone_frames  = 1
+                state        = STATE_LEAVING
+                print(f"[LEAVING]  lid still visible: {exit_has_lid}")
+            else:
+                if hand_holds_lid:
+                    holding_lid = True
 
-        last_stable_count = stable_count
+        elif state == STATE_LEAVING:
+            if hand_present:
+                hold_frames = HOLD_CONFIRM
+                holding_lid = hand_holds_lid
+                state       = STATE_HOLDING
+                print("[BACK]  hand returned")
+            else:
+                gone_frames  += 1
+                exit_has_lid  = lid_present
 
-        # --- PRO UI OVERLAY ---
-        # Dark header bar
-        cv2.rectangle(frame, (0, 0), (frame.shape[1], 70), (20, 20, 20), -1)
-        # Status Light
-        status_color = (0, 255, 0) if calibrated else (0, 165, 255)
-        cv2.circle(frame, (25, 35), 8, status_color, -1)
-        
-        cv2.putText(frame, f"All-CLAD Lid Count: {max(0, total_inventory)}", (50, 42), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255, 255, 255), 1)
-        cv2.putText(frame, f"Sensors: {stable_count} active", (frame.shape[1]-200, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-        cv2.putText(frame, f"latency: {inference_speed:.1f}ms", (frame.shape[1]-200, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+                if gone_frames >= GONE_CONFIRM:
+                    if not hand_had_lid and exit_has_lid:
+                        total_inventory += 1
+                        print(f"[+1] lid placed in. Inventory: {total_inventory}")
+                    elif holding_lid and not exit_has_lid:
+                        total_inventory = max(0, total_inventory - 1)
+                        print(f"[-1] lid taken out. Inventory: {total_inventory}")
+                    else:
+                        print(f"[NO CHANGE] had={hand_had_lid} "
+                              f"held={holding_lid} exit={exit_has_lid}")
+
+                    state        = STATE_WATCHING
+                    hold_frames  = 0
+                    gone_frames  = 0
+                    hand_had_lid = False
+                    holding_lid  = False
+                    exit_has_lid = False
+
+        # ── UI HEADER ──────────────────────────────────────────────────────
+        cv2.rectangle(frame, (0, 0), (fw, 70), (20, 20, 20), -1)
+
+        border_color = {
+            STATE_WATCHING: None,
+            STATE_HAND_IN:  (0, 220, 255),
+            STATE_HOLDING:  (0, 140, 255),
+            STATE_LEAVING:  (0, 255, 80),
+        }.get(state)
+        if border_color:
+            cv2.rectangle(frame, (0, 0), (fw, fh), border_color, 3)
+
+        cv2.circle(frame, (25, 35), 8, (0, 255, 0), -1)
+        cv2.putText(frame,
+                    f"All-CLAD Inventory: {total_inventory}",
+                    (50, 42), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (255, 255, 255), 1)
+        cv2.putText(frame,
+                    f"State: {state}   H:{hold_frames}/{HOLD_CONFIRM}  G:{gone_frames}/{GONE_CONFIRM}  Visible:{visible_count}",
+                    (10, fh - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (180, 180, 180), 1)
+        cv2.putText(frame,
+                    f"Latency: {latency:.1f}ms",
+                    (fw - 180, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 255), 1)
+
+        # Flash message (manual key actions)
+        if time.time() < flash_until:
+            cv2.putText(frame, flash_msg,
+                        (fw // 2 - 160, fh // 2),
+                        cv2.FONT_HERSHEY_TRIPLEX, 1.0, (0, 255, 255), 2)
 
         display_frame = frame.copy()
 
-    # Pause Logic
-    if is_paused:
-        cv2.putText(display_frame, "paused", (frame.shape[1]//4, frame.shape[2]//2), cv2.FONT_HERSHEY_TRIPLEX, 1.5, (0, 0, 255), 2)
+    if is_paused and display_frame is not None:
+        dh, dw = display_frame.shape[:2]
+        cv2.putText(display_frame, "PAUSED", (dw // 4, dh // 2),
+                    cv2.FONT_HERSHEY_TRIPLEX, 1.5, (0, 0, 255), 2)
 
-    cv2.imshow("lid line declaration", display_frame)
+    if display_frame is not None:
+        cv2.imshow("All-CLAD Lid Detection", display_frame)
 
     key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'): break
-    if key == ord('p'): is_paused = not is_paused
-    if key == ord('r'): # Full hardware reset
+
+    if key == ord('q'):
+        break
+
+    elif key == ord('p'):
+        is_paused = not is_paused
+
+    elif key == ord('=') or key == ord('+'):
+        # Manual +1
+        total_inventory += 1
+        flash_msg   = f"MANUAL +1  ->  {total_inventory}"
+        flash_until = time.time() + 1.5
+        print(f"[MANUAL +1] Inventory: {total_inventory}")
+
+    elif key == ord('-'):
+        # Manual -1
+        total_inventory = max(0, total_inventory - 1)
+        flash_msg   = f"MANUAL -1  ->  {total_inventory}"
+        flash_until = time.time() + 1.5
+        print(f"[MANUAL -1] Inventory: {total_inventory}")
+
+    elif key == ord('s'):
+        # Sync: ADD currently visible lid_handle count to inventory
+        if display_frame is not None:
+            total_inventory += visible_count
+            flash_msg   = f"ADDED {visible_count}  ->  {total_inventory}"
+            flash_until = time.time() + 1.5
+            print(f"[SYNC] Added {visible_count} visible lids. Inventory: {total_inventory}")
+
+    elif key == ord('r'):
         total_inventory = 0
-        calibrated = False
-        lid_memory.clear()
+        state           = STATE_WATCHING
+        hold_frames     = 0
+        gone_frames     = 0
+        hand_had_lid    = False
+        holding_lid     = False
+        exit_has_lid    = False
+        flash_msg       = "RESET"
+        flash_until     = time.time() + 1.5
+        print("[RESET]")
 
 vs.stop()
 cv2.destroyAllWindows()
